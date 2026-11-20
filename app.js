@@ -137,7 +137,11 @@ async function fetchJsonWithTimeout(url, timeoutMs = 3500) {
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, { headers: { Accept: "application/json" }, signal: controller.signal });
+    const res = await fetch(url, {
+      headers: { Accept: "application/json" },
+      cache: "no-cache",
+      signal: controller.signal
+    });
     clearTimeout(id);
     if (res.ok) {
       return await res.json();
@@ -376,6 +380,8 @@ function aggregateCities() {
       "SOLONOPOLE": 1
     };
     const totalStateNotifications = officialDashboardData?.cards?.casosNotificados || 448;
+    const totalStateConfirmed = officialDashboardData?.cards?.casosConfirmados || 175;
+    const scaleConfirm = totalStateConfirmed > 0 ? (totalStateConfirmed / 175) : 1;
     const list = officialDashboardData["casos-por-municipio"];
     list.forEach(item => {
       const rawName = item.municipio || "";
@@ -387,7 +393,7 @@ function aggregateCities() {
 
       const total = Number(item.total || 0);
       const confirmed = confirmedByCity2026[norm] !== undefined
-        ? Math.min(total, confirmedByCity2026[norm])
+        ? Math.min(total, Math.round(confirmedByCity2026[norm] * scaleConfirm))
         : 0;
       const sharePct = totalStateNotifications > 0
         ? Number(((total / totalStateNotifications) * 100).toFixed(2))
