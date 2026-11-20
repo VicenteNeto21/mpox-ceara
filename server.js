@@ -4,15 +4,19 @@ const path = require("path");
 const AdmZip = require("adm-zip");
 
 const PORT = Number(process.env.PORT || 5500);
-const HOST = process.env.HOST || "127.0.0.1";
+const HOST = process.env.HOST || (process.env.PORT ? "0.0.0.0" : "127.0.0.1");
 const UPSTREAM_API = "https://apidadosabertos.saude.gov.br/vigilancia-e-meio-ambiente/mpox";
 const MPX_2026_ZIP = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/mpox/csv/MPX_2026_OPENDATASUS.csv.zip";
 const IBGE_CEARA_API = "https://servicodados.ibge.gov.br/api/v1/localidades/estados/23/municipios";
+const INTEGRASUS_CSV = "https://datasets-integrasus.saude.ce.gov.br/datasets/download/33";
+const INTEGRASUS_DASH_BASE = "https://integrasus.saude.ce.gov.br/api/monkeypox";
 const ROOT = __dirname;
+
 let municipalitiesCache = null;
 let municipalitiesCacheTime = 0;
 let mpox2026Cache = null;
 let mpox2026CacheTime = 0;
+
 const CEARA_MUNICIPALITY_FALLBACK = [
   { id: 2304400, nome: "Fortaleza" }, { id: 2303709, nome: "Caucaia" },
   { id: 2311801, nome: "Russas" }, { id: 2312908, nome: "Sobral" },
@@ -39,34 +43,51 @@ function sendJson(response, status, value) {
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
+    "Access-Control-Allow-Origin": "*",
   });
   response.end(JSON.stringify(value));
 }
 
-async function proxyMpox(request, response) {
-  const requestUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
-  const limit = requestUrl.searchParams.get("limit") || "1000";
-  const offset = requestUrl.searchParams.get("offset") || "0";
-  const upstreamUrl = new URL(UPSTREAM_API);
-  upstreamUrl.searchParams.set("limit", limit);
-  upstreamUrl.searchParams.set("offset", offset);
+// Proxy para os endpoints oficiais do Dashboard IntegraSUS
+async function proxyIntegraDashboard(request, response, subpath) {
+  const reqUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+  const targetUrl = new URL(`${INTEGRASUS_DASH_BASE}/${subpath}`);
+  reqUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
 
   try {
-    const upstream = await fetch(upstreamUrl, {
-      headers: { Accept: "application/json" },
+    const upstream = await fetch(targetUrl.toString(), {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+      }
     });
-    const body = await upstream.text();
-    response.writeHead(upstream.status, {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    });
-    response.end(body);
-  } catch (error) {
-    console.error("Erro ao consultar API Mpox:", error);
-    sendJson(response, 502, {
-      error: "Não foi possível consultar a API do Ministério da Saúde.",
-    });
+
+    if (upstream.ok) {
+      const data = await upstream.text();
+      response.writeHead(upstream.status, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+        "Access-Control-Allow-Origin": "*",
+      });
+      response.end(data);
+      return;
+    }
+  } catch (e) {
+    console.warn(`Erro no proxy dashboard ${subpath}:`, e.message);
   }
+
+  // Fallback para snapshot local
+  const localFile = path.join(ROOT, "data", "integrasus-dashboard.json");
+  if (fs.existsSync(localFile)) {
+    try {
+      const dash = JSON.parse(fs.readFileSync(localFile, "utf8"));
+      if (dash[subpath]) {
+        sendJson(response, 200, dash[subpath]);
+        return;
+      }
+    } catch (e) {}
+  }
+  sendJson(response, 502, { error: "Serviço do IntegraSUS temporariamente indisponível." });
 }
 
 async function proxyCearaMunicipalities(response) {
@@ -76,86 +97,63 @@ async function proxyCearaMunicipalities(response) {
     return;
   }
 
+  const localFile = path.join(ROOT, "data", "municipios-ceara.json");
+  if (fs.existsSync(localFile)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(localFile, "utf8"));
+      municipalitiesCache = data;
+      municipalitiesCacheTime = now;
+      sendJson(response, 200, data);
+      return;
+    } catch (e) {}
+  }
+
   try {
     const upstream = await fetch(IBGE_CEARA_API, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "Mpox-Ceara-Painel/1.0",
-      },
+      headers: { Accept: "application/json", "User-Agent": "Mpox-Ceara-Painel/2.0" }
     });
-    if (!upstream.ok) throw new Error(`IBGE respondeu com HTTP ${upstream.status}.`);
+    if (!upstream.ok) throw new Error(`IBGE HTTP ${upstream.status}`);
     const municipalities = await upstream.json();
     municipalitiesCache = municipalities;
     municipalitiesCacheTime = now;
     sendJson(response, 200, municipalities);
   } catch (error) {
-    console.error("Erro ao consultar municipios do IBGE:", error);
     municipalitiesCache = CEARA_MUNICIPALITY_FALLBACK;
     municipalitiesCacheTime = now;
     sendJson(response, 200, municipalitiesCache);
   }
 }
 
-function parseSemicolonCsv(csvText) {
-  const lines = csvText.replace(/^\uFEFF/, "").split(/\r?\n/).filter(line => line.trim());
-  if (!lines.length) return [];
-
-  const parseLine = (line) => {
-    const values = [];
-    let value = "";
-    let quoted = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        quoted = !quoted;
-      } else if (char === ";" && !quoted) {
-        values.push(value.trim());
-        value = "";
-      } else {
-        value += char;
-      }
-    }
-    values.push(value.trim());
-    return values;
-  };
-
-  const headers = parseLine(lines[0]);
-  return lines.slice(1).map(line => {
-    const values = parseLine(line);
-    const row = {};
-    headers.forEach((header, index) => {
-      row[header] = values[index] ?? "";
-    });
-    return row;
-  });
+async function proxyPopulacaoCeara(response) {
+  const localFile = path.join(ROOT, "data", "populacao-ceara.json");
+  if (fs.existsSync(localFile)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(localFile, "utf8"));
+      sendJson(response, 200, data);
+      return;
+    } catch (e) {}
+  }
+  sendJson(response, 404, { error: "Dados de população não encontrados." });
 }
 
-async function proxyMpox2026(response) {
-  const now = Date.now();
-  if (mpox2026Cache && now - mpox2026CacheTime < 60 * 60 * 1000) {
-    sendJson(response, 200, mpox2026Cache);
-    return;
-  }
-
+async function proxyIntegraSUS(response) {
   try {
-    const upstream = await fetch(MPX_2026_ZIP);
-    if (!upstream.ok) throw new Error(`Arquivo Mpox 2026 respondeu com HTTP ${upstream.status}.`);
-    const zipBuffer = Buffer.from(await upstream.arrayBuffer());
-    const zip = new AdmZip(zipBuffer);
-    const entry = zip.getEntries().find(item => item.entryName.toLowerCase().endsWith(".csv"));
-    if (!entry) throw new Error("Arquivo CSV nao encontrado no pacote Mpox 2026.");
-
-    const rows = parseSemicolonCsv(entry.getData().toString("utf8"));
-    const cearaRows = rows.filter(row =>
-      String(row.co_uf_res || "").trim() === "23" ||
-      String(row.sg_uf || "").trim().toUpperCase() === "CE"
-    );
-    mpox2026Cache = cearaRows;
-    mpox2026CacheTime = now;
-    sendJson(response, 200, cearaRows);
-  } catch (error) {
-    console.error("Erro ao consultar arquivo Mpox 2026:", error);
-    sendJson(response, 502, { error: "Nao foi possivel consultar os dados oficiais de Mpox 2026." });
+    const upstream = await fetch(INTEGRASUS_CSV, { cache: "no-store" });
+    if (!upstream.ok) throw new Error(`IntegraSUS HTTP ${upstream.status}`);
+    const text = await upstream.text();
+    response.writeHead(200, {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+    });
+    response.end(text);
+  } catch (e) {
+    const local = path.join(ROOT, "data", "integrasus-mpox.json");
+    if (fs.existsSync(local)) {
+      sendJson(response, 200, JSON.parse(fs.readFileSync(local, "utf8")));
+      return;
+    }
+    sendJson(response, 502, { error: "IntegraSUS dataset temporariamente indisponível." });
   }
 }
 
@@ -185,18 +183,32 @@ function serveStatic(request, response) {
 }
 
 const server = http.createServer((request, response) => {
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  if (request.method === "OPTIONS") {
+    response.writeHead(204, {
+      "Access-Control-Allow-Methods": "GET",
+      "Access-Control-Allow-Headers": "Accept, Content-Type"
+    });
+    response.end();
+    return;
+  }
   const pathname = new URL(request.url, `http://${request.headers.host || "localhost"}`).pathname;
-  if (pathname === "/api/mpox") {
-    proxyMpox(request, response);
-  } else if (pathname === "/api/mpox-2026") {
-    proxyMpox2026(response);
+
+  // Rotas da API oficial do Monkeypox IntegraSUS
+  if (pathname.startsWith("/api/monkeypox/")) {
+    const subpath = pathname.replace("/api/monkeypox/", "");
+    proxyIntegraDashboard(request, response, subpath);
   } else if (pathname === "/api/municipios-ceara") {
     proxyCearaMunicipalities(response);
+  } else if (pathname === "/api/populacao-ceara") {
+    proxyPopulacaoCeara(response);
+  } else if (pathname === "/api/integrasus-mpox") {
+    proxyIntegraSUS(response);
   } else {
     serveStatic(request, response);
   }
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Painel disponível em http://localhost:${PORT}`);
+  console.log(`Painel disponível em http://${HOST}:${PORT}`);
 });

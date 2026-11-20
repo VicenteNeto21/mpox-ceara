@@ -1,0 +1,959 @@
+{
+  "ano": 2026,
+  "atualizadoEm": "2026-11-20T13:54:17.315Z",
+  "cards": {
+    "casosNotificados": 448,
+    "casosConfirmados": 175,
+    "casosDescartados": 166,
+    "casosSuspeitos": 0,
+    "casosProvaveis": 1,
+    "naoClassificaveis": 0
+  },
+  "casos-por-municipio": [
+    {
+      "municipio": "ALCANTARAS",
+      "percentual": 0.04,
+      "codMunicipio": "230050",
+      "total": 1
+    },
+    {
+      "municipio": "AMONTADA",
+      "percentual": 0.04,
+      "codMunicipio": "230075",
+      "total": 1
+    },
+    {
+      "municipio": "AQUIRAZ",
+      "percentual": 0.04,
+      "codMunicipio": "230100",
+      "total": 1
+    },
+    {
+      "municipio": "ARACATI",
+      "percentual": 0.07,
+      "codMunicipio": "230110",
+      "total": 2
+    },
+    {
+      "municipio": "ARNEIROZ",
+      "percentual": 0.04,
+      "codMunicipio": "230150",
+      "total": 1
+    },
+    {
+      "municipio": "BARBALHA",
+      "percentual": 0.11,
+      "codMunicipio": "230190",
+      "total": 3
+    },
+    {
+      "municipio": "CAMOCIM",
+      "percentual": 0.04,
+      "codMunicipio": "230260",
+      "total": 1
+    },
+    {
+      "municipio": "CANINDE",
+      "percentual": 0.11,
+      "codMunicipio": "230280",
+      "total": 3
+    },
+    {
+      "municipio": "CARIRIACU",
+      "percentual": 0.04,
+      "codMunicipio": "230320",
+      "total": 1
+    },
+    {
+      "municipio": "CASCAVEL",
+      "percentual": 0.07,
+      "codMunicipio": "230350",
+      "total": 2
+    },
+    {
+      "municipio": "CAUCAIA",
+      "percentual": 0.94,
+      "codMunicipio": "230370",
+      "total": 26
+    },
+    {
+      "municipio": "CHORO",
+      "percentual": 0.04,
+      "codMunicipio": "230393",
+      "total": 1
+    },
+    {
+      "municipio": "COREAU",
+      "percentual": 0.04,
+      "codMunicipio": "230400",
+      "total": 1
+    },
+    {
+      "municipio": "CRATEUS",
+      "percentual": 0.11,
+      "codMunicipio": "230410",
+      "total": 3
+    },
+    {
+      "municipio": "CRATO",
+      "percentual": 0.04,
+      "codMunicipio": "230420",
+      "total": 1
+    },
+    {
+      "municipio": "EUSEBIO",
+      "percentual": 0.22,
+      "codMunicipio": "230428",
+      "total": 6
+    },
+    {
+      "municipio": "FORQUILHA",
+      "percentual": 0.11,
+      "codMunicipio": "230435",
+      "total": 3
+    },
+    {
+      "municipio": "FORTALEZA",
+      "percentual": 9.32,
+      "codMunicipio": "230440",
+      "total": 259
+    },
+    {
+      "municipio": "GROAIRAS",
+      "percentual": 0.11,
+      "codMunicipio": "230490",
+      "total": 3
+    },
+    {
+      "municipio": "GUARACIABA DO NORTE",
+      "percentual": 0.04,
+      "codMunicipio": "230500",
+      "total": 1
+    },
+    {
+      "municipio": "HORIZONTE",
+      "percentual": 0.04,
+      "codMunicipio": "230523",
+      "total": 1
+    },
+    {
+      "municipio": "ICO",
+      "percentual": 0.04,
+      "codMunicipio": "230540",
+      "total": 1
+    },
+    {
+      "municipio": "INDEPENDENCIA",
+      "percentual": 0.04,
+      "codMunicipio": "230560",
+      "total": 1
+    },
+    {
+      "municipio": "IPUEIRAS",
+      "percentual": 0.04,
+      "codMunicipio": "230590",
+      "total": 1
+    },
+    {
+      "municipio": "ITAITINGA",
+      "percentual": 0.18,
+      "codMunicipio": "230625",
+      "total": 5
+    },
+    {
+      "municipio": "ITAPAJE",
+      "percentual": 0.07,
+      "codMunicipio": "230630",
+      "total": 2
+    },
+    {
+      "municipio": "JARDIM",
+      "percentual": 0.04,
+      "codMunicipio": "230710",
+      "total": 1
+    },
+    {
+      "municipio": "JIJOCA DE JERICOACOARA",
+      "percentual": 0.07,
+      "codMunicipio": "230725",
+      "total": 2
+    },
+    {
+      "municipio": "JUAZEIRO DO NORTE",
+      "percentual": 0.43,
+      "codMunicipio": "230730",
+      "total": 12
+    },
+    {
+      "municipio": "LIMOEIRO DO NORTE",
+      "percentual": 0.07,
+      "codMunicipio": "230760",
+      "total": 2
+    },
+    {
+      "municipio": "MADALENA",
+      "percentual": 0.04,
+      "codMunicipio": "230763",
+      "total": 1
+    },
+    {
+      "municipio": "MARACANAU",
+      "percentual": 0.68,
+      "codMunicipio": "230765",
+      "total": 19
+    },
+    {
+      "municipio": "MARANGUAPE",
+      "percentual": 0.14,
+      "codMunicipio": "230770",
+      "total": 4
+    },
+    {
+      "municipio": "MARCO",
+      "percentual": 0.04,
+      "codMunicipio": "230780",
+      "total": 1
+    },
+    {
+      "municipio": "MARTINOPOLE",
+      "percentual": 0.04,
+      "codMunicipio": "230790",
+      "total": 1
+    },
+    {
+      "municipio": "MASSAPE",
+      "percentual": 0.07,
+      "codMunicipio": "230800",
+      "total": 2
+    },
+    {
+      "municipio": "MAURITI",
+      "percentual": 0.04,
+      "codMunicipio": "230810",
+      "total": 1
+    },
+    {
+      "municipio": "MERUOCA",
+      "percentual": 0.04,
+      "codMunicipio": "230820",
+      "total": 1
+    },
+    {
+      "municipio": "MIRAIMA",
+      "percentual": 0.04,
+      "codMunicipio": "230837",
+      "total": 1
+    },
+    {
+      "municipio": "MORRINHOS",
+      "percentual": 0.04,
+      "codMunicipio": "230890",
+      "total": 1
+    },
+    {
+      "municipio": "NOVA OLINDA",
+      "percentual": 0.07,
+      "codMunicipio": "230920",
+      "total": 2
+    },
+    {
+      "municipio": "NOVO ORIENTE",
+      "percentual": 0.14,
+      "codMunicipio": "230940",
+      "total": 4
+    },
+    {
+      "municipio": "OCARA",
+      "percentual": 0.04,
+      "codMunicipio": "230945",
+      "total": 1
+    },
+    {
+      "municipio": "PACATUBA",
+      "percentual": 0.14,
+      "codMunicipio": "230970",
+      "total": 4
+    },
+    {
+      "municipio": "PEDRA BRANCA",
+      "percentual": 0.04,
+      "codMunicipio": "231050",
+      "total": 1
+    },
+    {
+      "municipio": "PEREIRO",
+      "percentual": 0.04,
+      "codMunicipio": "231080",
+      "total": 1
+    },
+    {
+      "municipio": "PINDORETAMA",
+      "percentual": 0.11,
+      "codMunicipio": "231085",
+      "total": 3
+    },
+    {
+      "municipio": "PIQUET CARNEIRO",
+      "percentual": 0.04,
+      "codMunicipio": "231090",
+      "total": 1
+    },
+    {
+      "municipio": "QUIXADA",
+      "percentual": 0.11,
+      "codMunicipio": "231130",
+      "total": 3
+    },
+    {
+      "municipio": "QUIXERAMOBIM",
+      "percentual": 0.07,
+      "codMunicipio": "231140",
+      "total": 2
+    },
+    {
+      "municipio": "RUSSAS",
+      "percentual": 0.14,
+      "codMunicipio": "231180",
+      "total": 4
+    },
+    {
+      "municipio": "SANTA QUITERIA",
+      "percentual": 0.04,
+      "codMunicipio": "231220",
+      "total": 1
+    },
+    {
+      "municipio": "SAO BENEDITO",
+      "percentual": 0.04,
+      "codMunicipio": "231230",
+      "total": 1
+    },
+    {
+      "municipio": "SAO GONCALO DO AMARANTE",
+      "percentual": 0.04,
+      "codMunicipio": "231240",
+      "total": 1
+    },
+    {
+      "municipio": "SAO LUIS DO CURU",
+      "percentual": 0.04,
+      "codMunicipio": "231260",
+      "total": 1
+    },
+    {
+      "municipio": "SEM INFORMAÇÃO",
+      "percentual": 0.04,
+      "codMunicipio": "230000",
+      "total": 1
+    },
+    {
+      "municipio": "SENADOR POMPEU",
+      "percentual": 0.04,
+      "codMunicipio": "231270",
+      "total": 1
+    },
+    {
+      "municipio": "SENADOR SA",
+      "percentual": 0.04,
+      "codMunicipio": "231280",
+      "total": 1
+    },
+    {
+      "municipio": "SOBRAL",
+      "percentual": 0.79,
+      "codMunicipio": "231290",
+      "total": 22
+    },
+    {
+      "municipio": "SOLONOPOLE",
+      "percentual": 0.04,
+      "codMunicipio": "231300",
+      "total": 1
+    },
+    {
+      "municipio": "TABULEIRO DO NORTE",
+      "percentual": 0.11,
+      "codMunicipio": "231310",
+      "total": 3
+    },
+    {
+      "municipio": "TAMBORIL",
+      "percentual": 0.04,
+      "codMunicipio": "231320",
+      "total": 1
+    },
+    {
+      "municipio": "TIANGUA",
+      "percentual": 0.07,
+      "codMunicipio": "231340",
+      "total": 2
+    },
+    {
+      "municipio": "URUOCA",
+      "percentual": 0.04,
+      "codMunicipio": "231390",
+      "total": 1
+    },
+    {
+      "municipio": "VICOSA DO CEARA",
+      "percentual": 0.04,
+      "codMunicipio": "231410",
+      "total": 1
+    },
+    {
+      "percentual": 0.14,
+      "total": 4
+    }
+  ],
+  "casos-por-inicio-sintomas": [
+    {
+      "dataSintoma": "14/01/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "15/01/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "16/01/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "19/01/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "20/01/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "16/02/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "18/02/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "23/02/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "24/02/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "26/02/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "27/02/2026",
+      "total": 3
+    },
+    {
+      "dataSintoma": "02/03/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "05/03/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "06/03/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "09/03/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "10/03/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "11/03/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "12/03/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "13/03/2026",
+      "total": 3
+    },
+    {
+      "dataSintoma": "14/03/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "18/03/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "20/03/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "26/03/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "01/04/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "06/04/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "08/04/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "09/04/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "10/04/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "15/04/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "16/04/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "23/04/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "30/04/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "04/05/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "05/05/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "07/05/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "08/05/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "09/05/2026",
+      "total": 3
+    },
+    {
+      "dataSintoma": "13/05/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "14/05/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "15/05/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "19/05/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "23/05/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "01/06/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "02/06/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "11/06/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "07/07/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "16/07/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "28/07/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "04/08/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "10/08/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "21/08/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "30/08/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "17/10/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "19/10/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "20/10/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "22/10/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "25/10/2026",
+      "total": 1
+    },
+    {
+      "dataSintoma": "28/10/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "29/10/2026",
+      "total": 6
+    },
+    {
+      "dataSintoma": "30/10/2026",
+      "total": 3
+    },
+    {
+      "dataSintoma": "31/10/2026",
+      "total": 5
+    },
+    {
+      "dataSintoma": "01/11/2026",
+      "total": 5
+    },
+    {
+      "dataSintoma": "02/11/2026",
+      "total": 5
+    },
+    {
+      "dataSintoma": "03/11/2026",
+      "total": 2
+    },
+    {
+      "dataSintoma": "04/11/2026",
+      "total": 7
+    },
+    {
+      "dataSintoma": "05/11/2026",
+      "total": 7
+    },
+    {
+      "dataSintoma": "06/11/2026",
+      "total": 7
+    },
+    {
+      "dataSintoma": "07/11/2026",
+      "total": 15
+    },
+    {
+      "dataSintoma": "08/11/2026",
+      "total": 8
+    },
+    {
+      "dataSintoma": "09/11/2026",
+      "total": 20
+    },
+    {
+      "dataSintoma": "10/11/2026",
+      "total": 16
+    },
+    {
+      "dataSintoma": "11/11/2026",
+      "total": 22
+    },
+    {
+      "dataSintoma": "12/11/2026",
+      "total": 20
+    },
+    {
+      "dataSintoma": "13/11/2026",
+      "total": 36
+    },
+    {
+      "dataSintoma": "14/11/2026",
+      "total": 21
+    },
+    {
+      "dataSintoma": "15/11/2026",
+      "total": 13
+    },
+    {
+      "dataSintoma": "16/11/2026",
+      "total": 33
+    },
+    {
+      "dataSintoma": "17/11/2026",
+      "total": 54
+    },
+    {
+      "dataSintoma": "18/11/2026",
+      "total": 66
+    },
+    {
+      "dataSintoma": "19/11/2026",
+      "total": 1
+    }
+  ],
+  "casos-por-sexo-faixa-etaria": [
+    {
+      "sexo": "Masculino",
+      "faixaEtaria": "60+",
+      "total": 8
+    },
+    {
+      "sexo": "Masculino",
+      "faixaEtaria": "50-59",
+      "total": 11
+    },
+    {
+      "sexo": "Masculino",
+      "faixaEtaria": "40-49",
+      "total": 55
+    },
+    {
+      "sexo": "Masculino",
+      "faixaEtaria": "30-39",
+      "total": 141
+    },
+    {
+      "sexo": "Masculino",
+      "faixaEtaria": "20-29",
+      "total": 109
+    },
+    {
+      "sexo": "Masculino",
+      "faixaEtaria": "10-19",
+      "total": 13
+    },
+    {
+      "sexo": "Masculino",
+      "faixaEtaria": "00-09",
+      "total": 10
+    },
+    {
+      "sexo": "Feminino",
+      "faixaEtaria": "60+",
+      "total": 5
+    },
+    {
+      "sexo": "Feminino",
+      "faixaEtaria": "50-59",
+      "total": 14
+    },
+    {
+      "sexo": "Feminino",
+      "faixaEtaria": "40-49",
+      "total": 17
+    },
+    {
+      "sexo": "Feminino",
+      "faixaEtaria": "30-39",
+      "total": 21
+    },
+    {
+      "sexo": "Feminino",
+      "faixaEtaria": "20-29",
+      "total": 13
+    },
+    {
+      "sexo": "Feminino",
+      "faixaEtaria": "10-19",
+      "total": 23
+    },
+    {
+      "sexo": "Feminino",
+      "faixaEtaria": "00-09",
+      "total": 8
+    }
+  ],
+  "numero-casos-por-semana": [
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "2",
+      "total": 3
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "3",
+      "total": 2
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "7",
+      "total": 3
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "8",
+      "total": 6
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "9",
+      "total": 4
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "10",
+      "total": 10
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "11",
+      "total": 2
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "12",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "13",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "14",
+      "total": 4
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "15",
+      "total": 2
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "16",
+      "total": 2
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "17",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "18",
+      "total": 9
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "19",
+      "total": 4
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "20",
+      "total": 2
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "22",
+      "total": 2
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "23",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "27",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "28",
+      "total": 2
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "30",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "31",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "32",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "33",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "35",
+      "total": 1
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "41",
+      "total": 2
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "42",
+      "total": 4
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "43",
+      "total": 17
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "44",
+      "total": 48
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "45",
+      "total": 143
+    },
+    {
+      "ano": "2026",
+      "semanaEpidemiologica": "46",
+      "total": 167
+    }
+  ]
+}

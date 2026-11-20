@@ -3,121 +3,890 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Painel de monitoramento epidemiológico da Mpox no Ceará com dados públicos do Ministério da Saúde.">
-  <title>Mpox Ceará | Painel Epidemiológico</title>
+  <meta name="description" content="Painel de monitoramento epidemiológico em tempo real da Mpox no Ceará com mapa coroplético interativo por cidades, dados do IntegraSUS (SESA-CE), IBGE e Ministério da Saúde.">
+  <title>Mpox Ceará | Painel Epidemiológico & Mapa Interativo</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans & Manrope -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5.3 & Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <!-- Estilos customizados -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-dark topbar">
+
+  <!-- Barra de Navegação Superior (Header) -->
+  <header class="navbar navbar-expand-lg topbar sticky-top">
     <div class="container-fluid px-lg-5">
       <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-        <span class="brand-mark"><i class="bi bi-heart-pulse-fill"></i></span>
-        <span><strong>Mpox</strong><small class="d-block brand-subtitle">CEARÁ · MONITORAMENTO</small></span>
+        <span class="brand-mark">
+          <i class="bi bi-shield-plus"></i>
+        </span>
+        <div class="brand-text">
+          <span class="brand-title">Mpox <strong>Ceará</strong></span>
+          <span class="brand-badge">PAINEL EPIDEMIOLÓGICO</span>
+        </div>
       </a>
-      <div class="d-flex align-items-center gap-3 ms-auto">
-        <span class="live-indicator"><span></span> PAINEL PÚBLICO</span>
-        <button id="refreshBtn" class="btn btn-refresh"><i class="bi bi-arrow-clockwise me-2"></i>Atualizar dados</button>
+
+      <!-- Status e Controles do Topo -->
+      <div class="d-flex align-items-center gap-2 gap-md-3 ms-auto">
+        <a href="https://integrasus.saude.ce.gov.br/#/indicadores/indicadores-vigilancia-saude/situacao-epidemiologica/monkeypox" target="_blank" rel="noopener" class="live-pill text-decoration-none" title="Acessar o painel oficial do IntegraSUS">
+          <span class="pulse-dot"></span>
+          <span class="live-text d-none d-sm-inline">OFICIAL</span>
+          <span class="live-source">IntegraSUS SESA</span>
+          <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 9px;"></i>
+        </a>
+
+        <span class="countdown-badge d-none d-md-inline-flex" id="refreshTimerBadge" title="Tempo até a próxima checagem automática">
+          <i class="bi bi-clock-history me-1"></i> <span id="countdownText">60s</span>
+        </span>
+
+        <!-- Botão Triagem Rápida -->
+        <button class="btn btn-outline-light btn-sm rounded-pill px-3 d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#triageModal" title="Fazer autoavaliação preventiva e triagem de sintomas">
+          <i class="bi bi-heart-pulse-fill text-danger"></i> <span class="d-none d-sm-inline">Triagem de Sintomas</span>
+        </button>
+
+        <!-- Botão Alternador de Modo Escuro / Claro -->
+        <button id="themeToggleBtn" class="btn btn-outline-light btn-sm rounded-pill px-3 d-flex align-items-center gap-1" title="Alternar entre modo claro e escuro">
+          <i class="bi bi-moon-stars-fill" id="themeToggleIcon"></i> <span class="d-none d-md-inline" id="themeToggleText">Modo Escuro</span>
+        </button>
+
+        <!-- Botão Exportar -->
+        <div class="dropdown">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle rounded-pill px-3" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-download me-1"></i> <span class="d-none d-sm-inline">Exportar</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="exportDropdown">
+            <li><h6 class="dropdown-header">Exportar Dados</h6></li>
+            <li><button class="dropdown-item d-flex align-items-center gap-2" id="exportCsvBtn"><i class="bi bi-filetype-csv text-success"></i> Tabela em CSV</button></li>
+            <li><button class="dropdown-item d-flex align-items-center gap-2" id="exportJsonBtn"><i class="bi bi-filetype-json text-primary"></i> Dados em JSON</button></li>
+          </ul>
+        </div>
+
+        <!-- Botão Atualizar -->
+        <button id="refreshBtn" class="btn btn-refresh rounded-pill" title="Consultar novos dados agora">
+          <i class="bi bi-arrow-clockwise me-1"></i> <span class="d-none d-sm-inline">Atualizar</span>
+        </button>
       </div>
     </div>
-  </nav>
+  </header>
 
-  <main class="container-fluid px-lg-5 py-4 py-lg-5">
-    <section class="hero mb-4">
-      <div class="row align-items-end g-4">
+  <main class="container-fluid px-lg-5 py-4">
+
+    <!-- Seção Hero com Contexto e Fontes -->
+    <section class="hero-section mb-4">
+      <div class="row align-items-center g-4">
         <div class="col-lg-8">
-          <div class="eyebrow"><span></span> VIGILÂNCIA EPIDEMIOLÓGICA</div>
-          <h1>Acompanhe a situação da <span>Mpox</span> no Ceará.</h1>
-          <p class="hero-copy">Informações epidemiológicas organizadas para acompanhar notificações, distribuição territorial e evolução dos registros no estado.</p>
+          <div class="eyebrow-pill mb-2">
+            <i class="bi bi-activity text-teal me-1"></i> VIGILÂNCIA EM SAÚDE · SECRETARIA DA SAÚDE DO CEARÁ (SESA)
+          </div>
+          <h1 class="hero-title">Situação Epidemiológica da <span>Mpox</span> no Ceará</h1>
+          <p class="hero-description">
+            Sincronizado diretamente com a plataforma 
+            <a href="https://integrasus.saude.ce.gov.br/#/indicadores/indicadores-vigilancia-saude/situacao-epidemiologica/monkeypox" target="_blank" rel="noopener" class="text-teal text-decoration-none fw-bold">
+              IntegraSUS - Monitoramento dos Casos de Mpox <i class="bi bi-box-arrow-up-right" style="font-size: 11px;"></i>
+            </a>, combinando mapa geográfico em escala de calor, notificações em tempo real, curva epidêmica por data de sintomas e inteligência demográfica do IBGE.
+          </p>
         </div>
         <div class="col-lg-4 text-lg-end">
-          <div class="update-box">
-            <span class="muted-label">ÚLTIMA CONSULTA AO SERVIÇO</span>
-            <strong id="lastUpdated">Aguardando consulta</strong>
-            <small id="dataStatus" class="status-text"><i class="bi bi-circle-fill"></i> Conectando à fonte oficial...</small>
+          <div class="api-status-card">
+            <div class="api-card-header">
+              <span class="text-uppercase fw-bold text-muted small">Transparência & Acesso</span>
+              <span class="badge bg-success-subtle text-success border border-success-subtle">100% Gratuito</span>
+            </div>
+            <div class="api-list">
+              <div class="api-item">
+                <i class="bi bi-shield-check text-teal"></i>
+                <span>Painel Oficial IntegraSUS (SESA)</span>
+                <span class="status-tag">Dados Públicos</span>
+              </div>
+              <div class="api-item">
+                <i class="bi bi-map text-teal"></i>
+                <span>Mapa de Polígonos (IBGE)</span>
+                <span class="status-tag">Livre / Sem Custos</span>
+              </div>
+              <div class="api-item">
+                <i class="bi bi-people text-teal"></i>
+                <span>Censo Demográfico (IBGE)</span>
+                <span class="status-tag" id="ibgeStatusTag">184 Cidades</span>
+              </div>
+            </div>
+            <div class="api-card-footer">
+              <small class="text-muted">Atualizado em: <strong id="lastUpdated" class="text-navy">Carregando...</strong></small>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <div id="alertArea" class="mb-3" aria-live="polite"></div>
+    <!-- Área de Alertas e Notificações -->
+    <div id="alertArea" class="mb-4" aria-live="polite"></div>
 
-    <section class="filter-bar mb-4">
-      <div class="d-flex flex-wrap align-items-center gap-3">
-        <div class="filter-title"><i class="bi bi-sliders me-2"></i>Filtros</div>
-        <div class="filter-control">
-          <label for="yearFilter">Ano de referência</label>
+    <!-- Barra de Filtros Inteligentes -->
+    <section class="filter-panel mb-4 shadow-sm">
+      <div class="filter-header d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-funnel-fill text-teal"></i>
+          <span class="fw-bold text-navy">Filtros da Vigilância</span>
+          <span class="badge bg-light text-secondary border ms-1" id="activeFilterCount">Todos os dados</span>
+        </div>
+        <button id="clearFilters" class="btn btn-sm btn-link text-decoration-none text-muted p-0">
+          <i class="bi bi-arrow-counterclockwise me-1"></i> Limpar filtros
+        </button>
+      </div>
+
+      <div class="row g-2 g-md-3">
+        <!-- Filtro Ano -->
+        <div class="col-6 col-md-4 col-lg-2">
+          <label for="yearFilter" class="form-label-sm">Ano de Referência</label>
           <select id="yearFilter" class="form-select form-select-sm">
-            <option value="all">Todos os anos</option>
+            <option value="2026" selected>2026 (Atual)</option>
+            <option value="all">Série Completa</option>
           </select>
         </div>
-        <div class="filter-control">
-          <label for="citySearch">Município</label>
-          <input id="citySearch" class="form-control form-control-sm" type="search" placeholder="Buscar município...">
+
+        <!-- Filtro Classificação -->
+        <div class="col-6 col-md-4 col-lg-2">
+          <label for="statusFilter" class="form-label-sm">Situação Clínica</label>
+          <select id="statusFilter" class="form-select form-select-sm">
+            <option value="all">Todas as situações</option>
+            <option value="CONFIRM">Confirmados</option>
+            <option value="INVESTIG">Em Investigação</option>
+            <option value="DESCART">Descartados</option>
+            <option value="PROVAV">Prováveis</option>
+          </select>
         </div>
-        <button id="clearFilters" class="btn btn-link btn-sm text-decoration-none ms-auto">Limpar filtros</button>
+
+        <!-- Filtro Superintendência -->
+        <div class="col-6 col-md-4 col-lg-2">
+          <label for="superFilter" class="form-label-sm">Superintendência</label>
+          <select id="superFilter" class="form-select form-select-sm">
+            <option value="all">Todas as regiões</option>
+          </select>
+        </div>
+
+        <!-- Filtro Sexo -->
+        <div class="col-6 col-md-4 col-lg-2">
+          <label for="sexFilter" class="form-label-sm">Sexo</label>
+          <select id="sexFilter" class="form-select form-select-sm">
+            <option value="all">Todos os sexos</option>
+            <option value="MASCULINO">Masculino</option>
+            <option value="FEMININO">Feminino</option>
+          </select>
+        </div>
+
+        <!-- Filtro Faixa Etária -->
+        <div class="col-6 col-md-4 col-lg-2">
+          <label for="ageFilter" class="form-label-sm">Faixa Etária</label>
+          <select id="ageFilter" class="form-select form-select-sm">
+            <option value="all">Todas as faixas</option>
+          </select>
+        </div>
+
+        <!-- Busca por Município -->
+        <div class="col-12 col-md-4 col-lg-2">
+          <label for="citySearch" class="form-label-sm">Buscar Município</label>
+          <div class="input-group input-group-sm">
+            <input id="citySearch" class="form-control" type="search" placeholder="Ex: Fortaleza, Caucaia...">
+            <button class="btn btn-outline-secondary" type="button" id="clearCitySearch" title="Limpar busca">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="row g-3 mb-4" id="kpiArea">
-      <div class="col-12 col-sm-6 col-xl-3"><article class="kpi-card"><div class="kpi-top"><span>Registros encontrados</span><i class="bi bi-clipboard2-data"></i></div><div class="kpi-value" id="totalKpi">—</div><div class="kpi-foot">Registros da base filtrados para o Ceará</div></article></div>
-      <div class="col-12 col-sm-6 col-xl-3"><article class="kpi-card"><div class="kpi-top"><span>Confirmados</span><i class="bi bi-check-circle"></i></div><div class="kpi-value" id="confirmedKpi">—</div><div class="kpi-foot">Conforme classificação disponível na base</div></article></div>
-      <div class="col-12 col-sm-6 col-xl-3"><article class="kpi-card"><div class="kpi-top"><span>Em investigação / suspeitos</span><i class="bi bi-hourglass-split"></i></div><div class="kpi-value" id="suspectedKpi">—</div><div class="kpi-foot">Conforme classificação disponível na base</div></article></div>
-      <div class="col-12 col-sm-6 col-xl-3"><article class="kpi-card"><div class="kpi-top"><span>Óbitos registrados</span><i class="bi bi-heartbreak"></i></div><div class="kpi-value" id="deathsKpi">—</div><div class="kpi-foot">Somente quando o campo de evolução existir</div></article></div>
+    <!-- Indicador de Tendência Epidêmica e Alerta de Risco (Últimos 7 e 14 dias) -->
+    <section class="card border-0 shadow-sm mb-4 trend-alert-card" id="trendAlertSection">
+      <div class="card-body p-3 p-md-4">
+        <div class="row align-items-center g-3">
+          <!-- Coluna 1: Status e Fase Epidêmica -->
+          <div class="col-lg-4">
+            <div class="d-flex align-items-center gap-3">
+              <div class="trend-icon-badge" id="trendIconBadge">
+                <i class="bi bi-graph-up-arrow" id="trendIcon"></i>
+              </div>
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle" id="trendPhaseBadge">
+                    <span class="trend-pulse-dot"></span> <span id="trendPhaseText">Fase de Aceleração</span>
+                  </span>
+                  <span class="badge bg-light text-muted border small d-none d-sm-inline">SESA-CE</span>
+                </div>
+                <h5 class="trend-heading-title mb-0" id="trendTitle">Transmissão em Aceleração</h5>
+                <small class="text-muted" id="trendSubtitle">Surto com concentração em novembro</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coluna 2: Velocímetro / Termômetro Epidêmico -->
+          <div class="col-lg-5">
+            <div class="trend-gauge-container">
+              <div class="d-flex justify-content-between text-uppercase small fw-bold mb-1">
+                <span class="text-success"><i class="bi bi-arrow-down-right me-1"></i>Queda (&lt; -15%)</span>
+                <span class="text-warning"><i class="bi bi-dash me-1"></i>Estável (±15%)</span>
+                <span class="text-danger"><i class="bi bi-arrow-up-right me-1"></i>Alta (&gt; +15%)</span>
+              </div>
+              <div class="trend-gauge-track position-relative">
+                <div class="trend-gauge-zone zone-down"></div>
+                <div class="trend-gauge-zone zone-stable"></div>
+                <div class="trend-gauge-zone zone-up"></div>
+                <div class="trend-gauge-indicator" id="trendGaugeIndicator" style="left: 88%;">
+                  <div class="trend-gauge-needle"></div>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted">Variação calculada sobre sintomas diários:</small>
+                <span class="fw-bold text-danger" id="trendVariationDisplay">+105% (Semana Epidemiológica)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coluna 3: Métricas de Comparação de 7 e 14 Dias -->
+          <div class="col-lg-3">
+            <div class="trend-stats-box p-2 rounded-3 bg-light d-flex justify-content-around text-center">
+              <div>
+                <span class="small text-muted d-block">Últimos 7 Dias</span>
+                <strong class="h5 mb-0 text-teal" id="trendCases7d">220</strong>
+                <small class="d-block text-muted" id="trendComp7d">vs 77 anterior</small>
+              </div>
+              <div class="vr opacity-25"></div>
+              <div>
+                <span class="small text-muted d-block">Últimos 14 Dias</span>
+                <strong class="h5 mb-0 text-navy" id="trendCases14d">297</strong>
+                <small class="d-block text-muted" id="trendComp14d">vs 18 anterior</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section class="row g-3 mb-4">
-      <div class="col-xl-8">
-        <article class="panel-card h-100">
-          <div class="panel-heading"><div><span class="section-kicker">SÉRIE HISTÓRICA</span><h2>Evolução dos registros</h2><p>Distribuição mensal conforme a data disponível na notificação.</p></div><span class="chart-tag"><i class="bi bi-graph-up me-1"></i> Mensal</span></div>
-          <div class="chart-wrap"><canvas id="timelineChart" aria-label="Gráfico de evolução mensal dos registros"></canvas><div id="timelineEmpty" class="chart-empty">Os dados do período aparecerão aqui após a consulta.</div></div>
+    <!-- Indicadores Chave (KPI Cards - Grid 5 Cards) -->
+    <section class="row g-3 mb-4" id="kpiSection">
+      <!-- Total Notificações -->
+      <div class="col-12 col-sm-6 col-lg">
+        <article class="kpi-card card-total">
+          <div class="kpi-icon-wrap">
+            <i class="bi bi-folder2-open"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">NOTIFICAÇÕES 2026</span>
+            <div class="kpi-number" id="totalKpi">—</div>
+            <div class="kpi-badge">IntegraSUS SESA</div>
+          </div>
         </article>
       </div>
-      <div class="col-xl-4">
-        <article class="panel-card h-100">
-          <div class="panel-heading"><div><span class="section-kicker">PERFIL DOS REGISTROS</span><h2>Classificação</h2><p>Situação registrada na base consultada.</p></div></div>
-          <div class="chart-wrap chart-wrap-doughnut"><canvas id="statusChart" aria-label="Gráfico de classificação dos registros"></canvas><div id="statusEmpty" class="chart-empty">Classificações não identificadas na resposta da API.</div></div>
-          <div id="statusLegend" class="status-legend"></div>
-        </article>
-      </div>
-    </section>
 
-    <section class="row g-3 mb-4">
-      <div class="col-xl-5">
-        <article class="panel-card h-100">
-          <div class="panel-heading"><div><span class="section-kicker">DISTRIBUIÇÃO TERRITORIAL</span><h2>Municípios com registros</h2><p>Município de residência, quando informado.</p></div></div>
-          <div id="cityBars" class="city-bars"><div class="empty-state">Aguardando dados municipais.</div></div>
+      <!-- Confirmados -->
+      <div class="col-12 col-sm-6 col-lg">
+        <article class="kpi-card card-confirmed">
+          <div class="kpi-icon-wrap">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">CASOS CONFIRMADOS</span>
+            <div class="kpi-number text-teal" id="confirmedKpi">—</div>
+            <div class="kpi-badge text-teal-dark bg-teal-soft" id="confirmedRateBadge">
+              <i class="bi bi-pie-chart-fill me-1"></i> <span id="confirmedPercent">—</span> de confirmação
+            </div>
+          </div>
         </article>
       </div>
-      <div class="col-xl-7">
-        <article class="panel-card h-100">
-          <div class="panel-heading align-items-start"><div><span class="section-kicker">CONSULTA DETALHADA</span><h2>Registros por município</h2><p>Resumo agregado; não exibe dados pessoais ou identificadores individuais.</p></div><span class="table-count" id="tableCount">0 municípios</span></div>
-          <div class="table-responsive">
-            <table class="table align-middle data-table mb-0">
-              <thead><tr><th>Município</th><th class="text-end">Registros</th><th class="text-end">Participação</th></tr></thead>
-              <tbody id="cityTable"><tr><td colspan="3" class="text-center py-4 text-secondary">Nenhum dado carregado.</td></tr></tbody>
-            </table>
+
+      <!-- Em Investigação / Prováveis -->
+      <div class="col-12 col-sm-6 col-lg">
+        <article class="kpi-card card-investigation">
+          <div class="kpi-icon-wrap">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">EM INVESTIGAÇÃO / PROVÁVEIS</span>
+            <div class="kpi-number text-amber" id="suspectedKpi">—</div>
+            <div class="kpi-badge text-amber-dark bg-amber-soft">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i> Monitoramento ativo
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Descartados -->
+      <div class="col-12 col-sm-6 col-lg">
+        <article class="kpi-card card-discarded">
+          <div class="kpi-icon-wrap">
+            <i class="bi bi-shield-x"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">DESCARTADOS</span>
+            <div class="kpi-number text-slate" id="discardedKpi">—</div>
+            <div class="kpi-badge text-slate-dark bg-slate-soft">
+              <i class="bi bi-check2-all me-1"></i> Laudo negativo
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Taxa de Incidência IBGE -->
+      <div class="col-12 col-sm-6 col-lg">
+        <article class="kpi-card card-incidence">
+          <div class="kpi-icon-wrap">
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-label">INCIDÊNCIA ESTADUAL</span>
+            <div class="kpi-number text-navy" id="incidenceKpi">—</div>
+            <div class="kpi-badge text-navy-dark bg-navy-soft" id="incidenceSubtitle">
+              Por 100 mil hab. (IBGE)
+            </div>
           </div>
         </article>
       </div>
     </section>
 
-    <section class="source-note mb-4">
-      <div class="source-icon"><i class="bi bi-database-check"></i></div>
-      <div><strong>Fonte dos dados</strong><p>Ministério da Saúde · Portal de Dados Abertos do SUS · e-SUS Sinan/Mpox. A frequência de atualização informada pelo portal é mensal. Os números podem sofrer revisão.</p><a href="https://dadosabertos.saude.gov.br/dataset/mpox" target="_blank" rel="noopener">Consultar conjunto de dados <i class="bi bi-box-arrow-up-right ms-1"></i></a></div>
+    <!-- Componente de Visualização Analítica em Abas (Com o Mapa Interativo de Cidades) -->
+    <section class="card border-0 shadow-sm mb-4 analytics-panel">
+      <div class="card-header bg-white border-bottom pt-3 px-4">
+        <ul class="nav nav-tabs card-header-tabs" id="analyticsTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-pane" type="button" role="tab" aria-controls="map-pane" aria-selected="true">
+              <i class="bi bi-map-fill me-1 text-teal"></i> Mapa Geográfico por Cidades
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="temporal-tab" data-bs-toggle="tab" data-bs-target="#temporal-pane" type="button" role="tab" aria-controls="temporal-pane" aria-selected="false">
+              <i class="bi bi-calendar3 me-1"></i> Curva Epidêmica (Sintomas)
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="demographic-tab" data-bs-toggle="tab" data-bs-target="#demographic-pane" type="button" role="tab" aria-controls="demographic-pane" aria-selected="false">
+              <i class="bi bi-people-fill me-1"></i> Perfil Demográfico (Sexo & Idade)
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="regional-tab" data-bs-toggle="tab" data-bs-target="#regional-pane" type="button" role="tab" aria-controls="regional-pane" aria-selected="false">
+              <i class="bi bi-geo-alt-fill me-1"></i> Superintendências & Top Cidades
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card-body p-4">
+        <div class="tab-content" id="analyticsTabsContent">
+
+          <!-- ABA 1: MAPA GEOGRÁFICO INTERATIVO POR CIDADES COM ESCALA DE CALOR -->
+          <div class="tab-pane fade show active" id="map-pane" role="tabpanel" aria-labelledby="map-tab">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+              <div>
+                <h5 class="chart-title mb-1">
+                  <i class="bi bi-geo-fill text-teal me-1"></i> Mapa Coroplético de Casos por Município
+                </h5>
+                <small class="text-muted">
+                  Escala de intensidade com polígonos oficiais do IBGE. Passe o mouse para ver detalhes ou clique na cidade para abrir o resumo completo.
+                </small>
+              </div>
+
+              <div class="d-flex align-items-center gap-2">
+                <!-- Seletor de Métrica do Mapa -->
+                <div class="btn-group btn-group-sm p-1 bg-light rounded-pill border" role="group">
+                  <input type="radio" class="btn-check" name="mapMetric" id="metricCases" value="cases" checked>
+                  <label class="btn btn-mode rounded-pill" for="metricCases">
+                    <i class="bi bi-virus me-1"></i> Notificações
+                  </label>
+
+                  <input type="radio" class="btn-check" name="mapMetric" id="metricIncidence" value="incidence">
+                  <label class="btn btn-mode rounded-pill" for="metricIncidence">
+                    <i class="bi bi-speedometer2 me-1"></i> Taxa / 100k hab
+                  </label>
+                </div>
+
+                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="resetMapBtn" title="Centralizar visualização no Estado do Ceará">
+                  <i class="bi bi-aspect-ratio me-1"></i> Recentrar
+                </button>
+              </div>
+            </div>
+
+            <!-- Container do Mapa Leaflet -->
+            <div class="map-wrapper position-relative">
+              <div id="cearaMap"></div>
+              
+              <!-- Card Flutuante de Informação do Município (Hover) -->
+              <div id="mapHoverCard" class="map-hover-card shadow-sm">
+                <span class="hover-label">MUNICÍPIO</span>
+                <h6 class="hover-city-name mb-1" id="hoverCityName">Passe o mouse sobre uma cidade</h6>
+                <div id="hoverCityStats" class="hover-city-stats text-muted small">
+                  Explore o mapa para ver casos e taxas
+                </div>
+              </div>
+
+              <!-- Legenda Flutuante da Escala de Cores -->
+              <div id="mapLegend" class="map-legend-box shadow-sm">
+                <!-- Injetada dinamicamente via JS de acordo com a métrica ativa -->
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA 2: SÉRIE TEMPORAL E CLASSIFICAÇÃO -->
+          <div class="tab-pane fade" id="temporal-pane" role="tabpanel" aria-labelledby="temporal-tab">
+            <div class="row g-4">
+              <div class="col-xl-8">
+                <div class="chart-box">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h5 class="chart-title mb-0">Evolução dos Casos por Início dos Sintomas</h5>
+                      <small class="text-muted">Acompanhamento diário da transmissão do vírus no Ceará</small>
+                    </div>
+                    <span class="badge bg-teal-soft text-teal-dark border border-teal-subtle">
+                      <i class="bi bi-graph-up me-1"></i> Pico Recente em Novembro
+                    </span>
+                  </div>
+                  <div class="chart-canvas-wrap">
+                    <canvas id="timelineChart"></canvas>
+                    <div id="timelineEmpty" class="chart-empty-msg">Nenhum dado temporal disponível.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-xl-4">
+                <div class="chart-box h-100">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h5 class="chart-title mb-0">Classificação Final</h5>
+                      <small class="text-muted">Conclusão diagnóstica dos exames</small>
+                    </div>
+                  </div>
+                  <div class="chart-canvas-wrap doughnut-wrap">
+                    <canvas id="statusChart"></canvas>
+                    <div id="statusEmpty" class="chart-empty-msg">Sem classificações disponíveis.</div>
+                  </div>
+                  <div id="statusLegend" class="status-legend-list mt-3"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA 3: PERFIL DEMOGRÁFICO -->
+          <div class="tab-pane fade" id="demographic-pane" role="tabpanel" aria-labelledby="demographic-tab">
+            <div class="row g-4">
+              <div class="col-lg-5">
+                <div class="chart-box">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h5 class="chart-title mb-0">Distribuição por Sexo Biológico</h5>
+                      <small class="text-muted">Proporção oficial do IntegraSUS</small>
+                    </div>
+                  </div>
+                  <div class="chart-canvas-wrap doughnut-wrap">
+                    <canvas id="sexChart"></canvas>
+                  </div>
+                  <div id="sexLegend" class="status-legend-list mt-3"></div>
+                </div>
+              </div>
+
+              <div class="col-lg-7">
+                <div class="chart-box">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h5 class="chart-title mb-0">Distribuição por Faixa Etária</h5>
+                      <small class="text-muted">Grupos etários mais acometidos pela doença</small>
+                    </div>
+                    <span class="badge bg-teal-soft text-teal-dark">
+                      <i class="bi bi-info-circle me-1"></i> Maior concentração: 20-39 anos
+                    </span>
+                  </div>
+                  <div class="chart-canvas-wrap">
+                    <canvas id="ageChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA 4: SUPERINTENDÊNCIAS E TOP CIDADES -->
+          <div class="tab-pane fade" id="regional-pane" role="tabpanel" aria-labelledby="regional-tab">
+            <div class="row g-4">
+              <div class="col-lg-6">
+                <div class="chart-box">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h5 class="chart-title mb-0">Superintendências Regionais de Saúde</h5>
+                      <small class="text-muted">Regionalização administrativa da SESA</small>
+                    </div>
+                  </div>
+                  <div class="chart-canvas-wrap">
+                    <canvas id="superChart"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-lg-6">
+                <div class="chart-box">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h5 class="chart-title mb-0">Top Municípios Notificantes</h5>
+                      <small class="text-muted">Concentração de casos por município de residência</small>
+                    </div>
+                  </div>
+                  <div id="cityBars" class="city-progress-list">
+                    <div class="text-center py-4 text-muted">Carregando cidades...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </section>
 
-    <footer class="footer d-flex flex-wrap justify-content-between gap-2">
-      <span>Mpox Ceará · Painel independente de acompanhamento de dados públicos.</span>
-      <span>Não substitui boletins oficiais nem avaliação de profissionais de saúde.</span>
+    <!-- Componente de Consulta e Tabela com Paginação Profissional -->
+    <section class="card border-0 shadow-sm mb-4 table-card">
+      <div class="card-header bg-white border-bottom py-3 px-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <h5 class="table-heading-title mb-1">
+              <i class="bi bi-table text-teal me-2"></i>Detalhamento Epidemiológico por Município
+            </h5>
+            <small class="text-muted" id="tableSubtitle">Tabela integrada com população e taxa de incidência oficial do IBGE</small>
+          </div>
+
+          <!-- Seletor de Modo da Tabela -->
+          <div class="d-flex align-items-center gap-3">
+            <div class="btn-group btn-group-sm p-1 bg-light rounded-pill border" role="group">
+              <input type="radio" class="btn-check" name="tableMode" id="tableModeCity" value="city" checked>
+              <label class="btn btn-mode rounded-pill" for="tableModeCity">
+                <i class="bi bi-building me-1"></i> Por Município
+              </label>
+
+              <input type="radio" class="btn-check" name="tableMode" id="tableModeRaw" value="raw">
+              <label class="btn btn-mode rounded-pill" for="tableModeRaw">
+                <i class="bi bi-list-ul me-1"></i> Microdados
+              </label>
+            </div>
+
+            <!-- Itens por Página -->
+            <div class="d-flex align-items-center gap-2">
+              <label for="pageSizeSelect" class="small text-muted text-nowrap">Exibir:</label>
+              <select id="pageSizeSelect" class="form-select form-select-sm w-auto rounded-3">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela Responsiva -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle custom-data-table mb-0" id="mainDataTable">
+          <thead id="mainTableHead"></thead>
+          <tbody id="mainTableBody">
+            <tr>
+              <td colspan="7" class="text-center py-5 text-muted">
+                <div class="spinner-border spinner-border-sm text-teal me-2" role="status"></div>
+                Carregando registros...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Barra de Controle de Paginação -->
+      <div class="card-footer bg-white border-top py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="pagination-info text-muted small" id="paginationInfo">
+          Mostrando <strong>0</strong> a <strong>0</strong> de <strong>0</strong> registros
+        </div>
+
+        <nav aria-label="Navegação da tabela">
+          <ul class="pagination pagination-sm mb-0 gap-1" id="paginationControls"></ul>
+        </nav>
+      </div>
+    </section>
+
+    <!-- Card de Recomendações e Informações Clínicas (SESA-CE) -->
+    <section class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="info-card h-100">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="info-icon bg-teal-soft text-teal">
+              <i class="bi bi-virus"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-navy mb-0">Sintomas e Transmissão</h5>
+              <small class="text-muted">Orientações da Vigilância Epidemiológica SESA-CE</small>
+            </div>
+          </div>
+          <p class="text-secondary small mb-2">
+            A Mpox é transmitida principalmente pelo contato físico direto com lesões cutâneas, fluidos corporais ou gotículas respiratórias de indivíduos infectados, além de objetos, toalhas e roupas de cama contaminadas.
+          </p>
+          <ul class="symptom-list small text-secondary mb-3">
+            <li><i class="bi bi-check-circle-fill text-teal me-2"></i>Erupções cutâneas que evoluem de manchas a vesículas com pus e crostas</li>
+            <li><i class="bi bi-check-circle-fill text-teal me-2"></i>Febre de início súbito, dor de cabeça, mialgia e astenia</li>
+            <li><i class="bi bi-check-circle-fill text-teal me-2"></i>Linfonodomegalia dolorosa (ínguas cervicais ou inguinais)</li>
+          </ul>
+          <button class="btn btn-teal btn-sm rounded-pill text-white px-3" data-bs-toggle="modal" data-bs-target="#triageModal">
+            <i class="bi bi-heart-pulse-fill me-1"></i> Fazer Triagem Rápida Online
+          </button>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="info-card h-100">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="info-icon bg-navy-soft text-navy">
+              <i class="bi bi-hospital"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-navy mb-0">Atendimento e Links Oficiais</h5>
+              <small class="text-muted">Acesso direto às plataformas estaduais</small>
+            </div>
+          </div>
+          <p class="text-secondary small mb-2">
+            Em caso de suspeita, faça isolamento imediato e dirija-se a uma Unidade Básica de Saúde (Posto de Saúde) ou UPA para coleta laboratorial especializada.
+          </p>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <a href="https://integrasus.saude.ce.gov.br/#/indicadores/indicadores-vigilancia-saude/situacao-epidemiologica/monkeypox" target="_blank" rel="noopener" class="btn btn-outline-teal btn-sm rounded-pill">
+              <i class="bi bi-box-arrow-up-right me-1"></i> Painel Monkeypox IntegraSUS
+            </a>
+            <a href="https://www.ce.gov.br/saude/" target="_blank" rel="noopener" class="btn btn-outline-navy btn-sm rounded-pill">
+              <i class="bi bi-globe me-1"></i> Secretaria da Saúde (SESA)
+            </a>
+            <a href="https://dadosabertos.saude.gov.br/dataset/mpox" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm rounded-pill">
+              <i class="bi bi-database me-1"></i> OpenDataSUS
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer class="footer-wrap text-center text-md-start py-4 border-top">
+      <div class="row align-items-center">
+        <div class="col-md-6 mb-2 mb-md-0">
+          <p class="mb-0 text-muted small">
+            <strong>Mpox Ceará</strong> · Painel epidemiológico independente com dados públicos.
+            <br>Conectado a <a href="https://integrasus.saude.ce.gov.br/#/indicadores/indicadores-vigilancia-saude/situacao-epidemiologica/monkeypox" target="_blank" rel="noopener" class="text-teal">IntegraSUS SESA-CE</a>, IBGE e Ministério da Saúde.
+          </p>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <p class="mb-0 text-muted small">
+            Atualização contínua a cada minuto · Dados para fins analíticos e de transparência.
+          </p>
+        </div>
+      </div>
     </footer>
+
   </main>
 
+  <!-- Modal Interativo de Detalhes do Município -->
+  <div class="modal fade" id="cityDetailModal" tabindex="-1" aria-labelledby="cityModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-header border-bottom px-4 py-3 bg-light rounded-top-4">
+          <div class="d-flex align-items-center gap-2">
+            <span class="modal-city-icon">
+              <i class="bi bi-geo-alt-fill text-teal"></i>
+            </span>
+            <div>
+              <h5 class="modal-title fw-bold text-navy mb-0" id="cityModalTitle">Município</h5>
+              <small class="text-muted" id="cityModalSubtitle">Resumo Epidemiológico Local</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body p-4" id="cityModalBody"></div>
+        <div class="modal-footer border-top px-4 py-3 bg-light rounded-bottom-4">
+          <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Interativo de Triagem e Autoavaliação de Sintomas -->
+  <div class="modal fade" id="triageModal" tabindex="-1" aria-labelledby="triageModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-header border-bottom px-4 py-3 triage-header rounded-top-4">
+          <div class="d-flex align-items-center gap-2">
+            <span class="triage-title-icon">
+              <i class="bi bi-heart-pulse-fill text-danger"></i>
+            </span>
+            <div>
+              <h5 class="modal-title fw-bold mb-0" id="triageModalTitle">Triagem Rápida & Autoavaliação de Mpox</h5>
+              <small class="text-muted">Guia informativo e orientações preventivas · Protocolo SUS / SESA-CE</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body p-4">
+          <div class="alert alert-info border-0 rounded-3 d-flex align-items-start gap-2 mb-4 py-2 px-3 small">
+            <i class="bi bi-info-circle-fill text-info mt-1"></i>
+            <span>Esta triagem tem finalidade exclusivamente <strong>educativa e de orientação</strong>, não substituindo o diagnóstico médico laboratorial realizado pelo SUS ou LACEN-CE.</span>
+          </div>
+
+          <form id="triageForm" onsubmit="return false;">
+            <!-- Grupo 1: Lesões e Alterações na Pele -->
+            <div class="triage-group mb-4">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="triage-step-badge">1</span>
+                <h6 class="fw-bold mb-0 text-navy">Sinais e Lesões Cutâneas (Pele e Mucosas)</h6>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="triage-check-card" for="symp_rash">
+                    <input type="checkbox" id="symp_rash" class="form-check-input triage-input" data-weight="3">
+                    <div class="check-content">
+                      <strong>Erupções ou manchas</strong>
+                      <small class="text-muted d-block">Manchas vermelhas que evoluem para bolhas ou crostas</small>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-md-6">
+                  <label class="triage-check-card" for="symp_genital">
+                    <input type="checkbox" id="symp_genital" class="form-check-input triage-input" data-weight="4">
+                    <div class="check-content">
+                      <strong>Lesões anogenitais ou orais</strong>
+                      <small class="text-muted d-block">Feridas dolorosas na região genital, ânus ou boca</small>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-md-6">
+                  <label class="triage-check-card" for="symp_pus">
+                    <input type="checkbox" id="symp_pus" class="form-check-input triage-input" data-weight="4">
+                    <div class="check-content">
+                      <strong>Vesículas com pus ou líquido</strong>
+                      <small class="text-muted d-block">Pústulas umbilicadas com centro deprimido</small>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-md-6">
+                  <label class="triage-check-card" for="symp_itch">
+                    <input type="checkbox" id="symp_itch" class="form-check-input triage-input" data-weight="2">
+                    <div class="check-content">
+                      <strong>Coceira intensa ou dor local</strong>
+                      <small class="text-muted d-block">Dor aguda ou ardência nas áreas afetadas</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grupo 2: Sintomas Gerais / Sistêmicos -->
+            <div class="triage-group mb-4">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="triage-step-badge">2</span>
+                <h6 class="fw-bold mb-0 text-navy">Sintomas Sistêmicos e Gerais</h6>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <label class="triage-check-card" for="symp_fever">
+                    <input type="checkbox" id="symp_fever" class="form-check-input triage-input" data-weight="2">
+                    <div class="check-content">
+                      <strong>Febre súbita (&gt; 37.8°C)</strong>
+                      <small class="text-muted d-block">Início repentino e calafrios</small>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-md-4">
+                  <label class="triage-check-card" for="symp_lymph">
+                    <input type="checkbox" id="symp_lymph" class="form-check-input triage-input" data-weight="3">
+                    <div class="check-content">
+                      <strong>Ínguas inchadas</strong>
+                      <small class="text-muted d-block">Linfonodos no pescoço, axilas ou virilha</small>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-md-4">
+                  <label class="triage-check-card" for="symp_muscle">
+                    <input type="checkbox" id="symp_muscle" class="form-check-input triage-input" data-weight="1">
+                    <div class="check-content">
+                      <strong>Mialgia e fraqueza</strong>
+                      <small class="text-muted d-block">Dores musculares e cansaço forte</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grupo 3: Histórico de Contato e Exposição (Últimos 21 Dias) -->
+            <div class="triage-group mb-4">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="triage-step-badge">3</span>
+                <h6 class="fw-bold mb-0 text-navy">Histórico de Exposição nos Últimos 21 Dias</h6>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="triage-check-card" for="exp_contact">
+                    <input type="checkbox" id="exp_contact" class="form-check-input triage-input" data-weight="4">
+                    <div class="check-content">
+                      <strong>Contato próximo / pele a pele</strong>
+                      <small class="text-muted d-block">Com pessoa que apresentava lesões suspeitas</small>
+                    </div>
+                  </label>
+                </div>
+                <div class="col-md-6">
+                  <label class="triage-check-card" for="exp_items">
+                    <input type="checkbox" id="exp_items" class="form-check-input triage-input" data-weight="3">
+                    <div class="check-content">
+                      <strong>Compartilhamento de itens</strong>
+                      <small class="text-muted d-block">Roupas de cama, toalhas, copos ou objetos pessoais</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <!-- Painel Dinâmico de Resultado da Avaliação -->
+          <div class="triage-result-card rounded-4 p-4 mt-3" id="triageResultCard">
+            <!-- Renderizado dinamicamente via JS -->
+            <div class="d-flex align-items-center gap-3">
+              <div class="triage-result-icon bg-success-subtle text-success">
+                <i class="bi bi-shield-check"></i>
+              </div>
+              <div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle mb-1">Risco Baixo</span>
+                <h5 class="fw-bold text-navy mb-1">Nenhum sintoma de alerta selecionado</h5>
+                <p class="text-muted small mb-0">Selecione as opções acima correspondentes aos sinais apresentados para calcular a orientação.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-top px-4 py-3 bg-light rounded-bottom-4 d-flex justify-content-between align-items-center">
+          <button type="button" class="btn btn-link text-muted btn-sm text-decoration-none p-0" id="resetTriageBtn">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Limpar Respostas
+          </button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" id="copyTriageBtn">
+              <i class="bi bi-clipboard me-1"></i> Copiar Avaliação
+            </button>
+            <button type="button" class="btn btn-teal btn-sm rounded-pill px-4 text-white" data-bs-dismiss="modal">
+              Concluir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
+
