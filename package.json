@@ -1,0 +1,15 @@
+{
+  "name": "mpox-ceara",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Painel epidemiologico de Mpox no Ceara",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1"
+  }
+}
