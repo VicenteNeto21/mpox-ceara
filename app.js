@@ -10,10 +10,12 @@ const INTEGRASUS_CSV_LOCAL = "data/integrasus-mpox.json";
 const IBGE_MUNICIPIOS_LOCAL = "data/municipios-ceara.json";
 const IBGE_POP_LOCAL = "data/populacao-ceara.json";
 const CEARA_GEOJSON_LOCAL = "data/ceara-municipios.geojson";
+const META_LOCAL = "data/meta.json";
 const AUTO_REFRESH_INTERVAL = 60; // segundos
 
 // Estado Global da Aplicação
 let officialDashboardData = null; // Dados oficiais do painel da SESA
+let metaData = null;              // Metadados e delta automático entre boletins
 let allRows = [];                 // Microdados das notificações
 let filteredData = [];            // Microdados após filtros
 let aggregatedCities = [];        // Cidades agregadas para tabela, mapa e ranking
@@ -200,8 +202,13 @@ async function loadMpoxData() {
   }
 
   try {
-    // 2.1 Tenta carregar os dados consolidados locais primeiro (0ms)
-    let dashData = await fetchJsonWithTimeout(INTEGRASUS_DASH_LOCAL, 2000);
+    // 2.1 Carrega painel oficial, metadados/delta e microdados locais em paralelo
+    let [dashData, loadedMeta, rows] = await Promise.all([
+      fetchJsonWithTimeout(INTEGRASUS_DASH_LOCAL, 2000),
+      fetchJsonWithTimeout(META_LOCAL, 2000),
+      fetchJsonWithTimeout(INTEGRASUS_CSV_LOCAL, 2500)
+    ]);
+
     if (!dashData && API_BASE) {
       dashData = await fetchJsonWithTimeout(`${API_BASE}/api/monkeypox/cards`, 3000);
     }
@@ -210,8 +217,10 @@ async function loadMpoxData() {
       officialDashboardData = dashData.cards ? dashData : { cards: dashData };
     }
 
-    // 2.2 Microdados das notificações
-    let rows = await fetchJsonWithTimeout(INTEGRASUS_CSV_LOCAL, 2500);
+    if (loadedMeta && typeof loadedMeta === "object") {
+      metaData = loadedMeta;
+    }
+
     if (!rows && API_BASE) {
       rows = await fetchJsonWithTimeout(`${API_BASE}/api/integrasus-mpox`, 3000);
     }
@@ -221,12 +230,21 @@ async function loadMpoxData() {
     }
 
     if ($("lastUpdated")) {
-      $("lastUpdated").textContent = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const refIso = metaData?.checkedAt || officialDashboardData?.atualizadoEm;
+      if (refIso) {
+        const dt = new Date(refIso);
+        $("lastUpdated").textContent = !Number.isNaN(dt.getTime())
+          ? dt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+          : new Date().toLocaleTimeString("pt-BR");
+      } else {
+        $("lastUpdated").textContent = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      }
     }
 
     clearAlert();
     populateFilterDropdowns();
     applyFilters();
+    try { renderDeltaFeed(); } catch (e) { console.error("Erro renderDeltaFeed:", e); }
 
   } catch (error) {
     console.error("Erro na consulta dos dados:", error);
@@ -737,6 +755,108 @@ function renderKpis() {
     } else {
       if ($("incidenceKpi")) $("incidenceKpi").textContent = "0,0";
     }
+  }
+}
+
+// ==========================================================================
+// Componente: Feed "O que mudou no último boletim?" (Delta Automático)
+// ==========================================================================
+
+function formatDeltaPill(val, label, icon, variantClass) {
+  if (val === null || val === undefined) return "";
+  const sign = val > 0 ? "+" : "";
+  return `
+    <span class="delta-metric-pill ${variantClass}">
+      <i class="bi ${icon}"></i> ${sign}${numberBR(val)} ${escapeHtml(label)}
+    </span>
+  `;
+}
+
+function renderDeltaFeed() {
+  const section = $("deltaFeedSection");
+  if (!section) return;
+
+  const lastChange = metaData?.lastChange;
+  const cards = officialDashboardData?.cards;
+  const totals = metaData?.currentTotals || (cards ? {
+    notificados: cards.casosNotificados || 0,
+    confirmados: cards.casosConfirmados || 0,
+    descartados: cards.casosDescartados || 0,
+    provaveis: (cards.casosProvaveis || 0) + (cards.casosSuspeitos || 0)
+  } : null);
+
+  if ($("deltaPeriodLabel")) {
+    $("deltaPeriodLabel").textContent = lastChange?.periodLabel || "Sincronizado com IntegraSUS/SESA";
+  }
+
+  if ($("deltaSummaryTitle")) {
+    $("deltaSummaryTitle").textContent = lastChange?.summaryText ||
+      (totals ? `${numberBR(totals.notificados)} notificações e ${numberBR(totals.confirmados)} confirmados acumulados em 2026` : "Monitoramento ativo");
+  }
+
+  const pillsEl = $("deltaPillsContainer");
+  if (pillsEl) {
+    const d = lastChange?.deltas || {};
+    const pills = [
+      formatDeltaPill(d.confirmados, "confirmados", "bi-graph-up-arrow", "pill-confirm"),
+      formatDeltaPill(d.notificados, "notificações", "bi-folder-plus", "pill-up"),
+      formatDeltaPill(d.descartados, "descartados", "bi-shield-check", "pill-discard"),
+      formatDeltaPill(d.provaveis, "prováveis", "bi-hourglass-split", "pill-neutral")
+    ].filter(Boolean);
+
+    if (totals) {
+      pills.push(`
+        <span class="delta-metric-pill pill-neutral">
+          <i class="bi bi-geo-alt-fill"></i> ${numberBR(aggregatedCities.length)} municípios com notificações
+        </span>
+      `);
+    }
+    pillsEl.innerHTML = pills.join("");
+  }
+
+  const citiesEl = $("deltaCitiesContainer");
+  if (citiesEl) {
+    const deltaCities = Array.isArray(lastChange?.topCitiesDelta) && lastChange.topCitiesDelta.length
+      ? lastChange.topCitiesDelta
+      : [...aggregatedCities].sort((a, b) => b.total - a.total).slice(0, 6);
+
+    const chips = deltaCities.map(c => {
+      const detail = c.delta > 0
+        ? `<span class="chip-delta">+${numberBR(c.delta)}</span> <small class="text-muted">(${numberBR(c.total)})</small>`
+        : c.confirmed > 0
+          ? `<span class="chip-delta">${numberBR(c.confirmed)} conf.</span> <small class="text-muted">(${numberBR(c.total)} notif.)</small>`
+          : `<span class="chip-delta">${numberBR(c.total)} notif.</span>`;
+
+      return `
+        <button type="button" class="delta-city-chip" onclick="openCityModal('${escapeHtml(c.name)}')">
+          <span>${escapeHtml(c.name)}</span>
+          ${detail}
+        </button>
+      `;
+    }).join("");
+
+    citiesEl.innerHTML = chips
+      ? `<span class="delta-city-label"><i class="bi bi-pin-map-fill text-teal me-1"></i>Destaques:</span>${chips}`
+      : "";
+  }
+
+  const histEl = $("deltaHistoryList");
+  if (histEl) {
+    const history = Array.isArray(metaData?.history) ? metaData.history : [];
+    histEl.innerHTML = history.length
+      ? history.map(entry => {
+          const dt = entry.detectedAt ? new Date(entry.detectedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+          return `
+            <div class="delta-history-item">
+              <div>
+                <strong class="text-navy">${escapeHtml(entry.periodLabel || "Atualização")}</strong>
+                <span class="d-block text-muted">${escapeHtml(entry.summaryText || "")}</span>
+              </div>
+              <span class="badge bg-light text-secondary border">${escapeHtml(dt)}</span>
+            </div>
+          `;
+        }).join("")
+      : `<div class="text-muted small">Nenhum histórico anterior registrado ainda. Novas comparações serão adicionadas automaticamente a cada coleta.</div>`;
   }
 }
 

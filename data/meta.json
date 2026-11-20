@@ -1,4 +1,47 @@
 {
   "generatedAt": "2026-11-20T13:54:20.712Z",
-  "version": "2.1.0"
+  "checkedAt": "2026-11-20T13:54:20.712Z",
+  "version": "2.2.0",
+  "currentTotals": {
+    "notificados": 448,
+    "confirmados": 175,
+    "descartados": 166,
+    "provaveis": 1
+  },
+  "lastChange": {
+    "detectedAt": "2026-11-20T13:54:20.712Z",
+    "previousAt": "2026-11-15T23:59:00.000Z",
+    "periodLabel": "Boletim SESA 15/11 → 19/11/2026",
+    "previousTotals": {
+      "confirmados": 85
+    },
+    "deltas": {
+      "notificados": null,
+      "confirmados": 90,
+      "descartados": null,
+      "provaveis": null
+    },
+    "summaryText": "+90 casos confirmados na comparação estadual (85 → 175) em 448 notificações",
+    "topCitiesDelta": [
+      { "name": "Fortaleza", "code": "230440", "confirmed": 145, "total": 259 },
+      { "name": "Caucaia", "code": "230370", "confirmed": 7, "total": 26 },
+      { "name": "Sobral", "code": "231290", "confirmed": 4, "total": 22 },
+      { "name": "Eusébio", "code": "230428", "confirmed": 3, "total": 6 },
+      { "name": "Maracanaú", "code": "230765", "confirmed": 2, "total": 19 },
+      { "name": "Juazeiro do Norte", "code": "230730", "confirmed": 2, "total": 12 }
+    ]
+  },
+  "history": [
+    {
+      "detectedAt": "2026-11-20T13:54:20.712Z",
+      "periodLabel": "Boletim SESA 15/11 → 19/11/2026",
+      "deltas": {
+        "notificados": null,
+        "confirmados": 90,
+        "descartados": null,
+        "provaveis": null
+      },
+      "summaryText": "+90 casos confirmados na comparação estadual (85 → 175) em 448 notificações"
+    }
+  ]
 }
