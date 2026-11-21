@@ -992,9 +992,9 @@ h1, h2, h3, h4, h5, h6, .brand-title {
    ========================================================================== */
 .trend-alert-card {
   background: var(--card-bg);
-  border: 1px solid rgba(225, 29, 72, 0.2) !important;
-  border-left: 5px solid var(--red) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -1394,8 +1394,7 @@ h1, h2, h3, h4, h5, h6, .brand-title {
 /* Indicador de Tendência e Velocímetro */
 [data-theme="dark"] .trend-alert-card {
   background: #111d2c !important;
-  border-color: rgba(244, 63, 94, 0.35) !important;
-  border-left-color: #f43f5e !important;
+  border: 1px solid #1f344d !important;
 }
 
 [data-theme="dark"] .trend-icon-badge {
@@ -1790,9 +1789,9 @@ h1, h2, h3, h4, h5, h6, .brand-title {
    ========================================================================== */
 .delta-feed-card {
   background: var(--card-bg);
-  border: 1px solid rgba(13, 148, 136, 0.22) !important;
-  border-left: 5px solid var(--teal) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .delta-bell-icon {
@@ -1919,8 +1918,7 @@ h1, h2, h3, h4, h5, h6, .brand-title {
 /* Delta Feed no Modo Escuro */
 [data-theme="dark"] .delta-feed-card {
   background: #111d2c !important;
-  border-color: rgba(20, 184, 166, 0.35) !important;
-  border-left-color: #14b8a6 !important;
+  border: 1px solid #1f344d !important;
 }
 
 [data-theme="dark"] .delta-bell-icon {
