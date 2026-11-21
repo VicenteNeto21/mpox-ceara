@@ -426,11 +426,24 @@
                   <i class="bi bi-geo-fill text-teal me-1"></i> Mapa Coroplético de Casos por Município
                 </h5>
                 <small class="text-muted">
-                  Escala de intensidade com polígonos oficiais do IBGE. Passe o mouse para ver detalhes ou clique na cidade para abrir o resumo completo.
+                  Arraste para mover, use a roda do mouse para zoom, ou escolha uma região/cidade para navegar.
                 </small>
               </div>
 
-              <div class="d-flex align-items-center gap-2">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <!-- Camadas Visuais -->
+                <div class="btn-group btn-group-sm" role="group" aria-label="Camadas do mapa">
+                  <input type="checkbox" class="btn-check" id="toggleMapBubbles" checked autocomplete="off">
+                  <label class="btn btn-outline-teal btn-sm rounded-start-pill px-3" for="toggleMapBubbles" title="Mostrar bolhas com números sobre as cidades">
+                    <i class="bi bi-circle-fill me-1" style="font-size: 9px;"></i> Números
+                  </label>
+
+                  <input type="checkbox" class="btn-check" id="toggleMapLabels" checked autocomplete="off">
+                  <label class="btn btn-outline-teal btn-sm rounded-end-pill px-3" for="toggleMapLabels" title="Exibir nomes das cidades no mapa">
+                    <i class="bi bi-tag-fill me-1"></i> Nomes
+                  </label>
+                </div>
+
                 <!-- Seletor de Métrica do Mapa -->
                 <div class="btn-group btn-group-sm p-1 bg-light rounded-pill border" role="group">
                   <input type="radio" class="btn-check" name="mapMetric" id="metricCases" value="cases" checked>
@@ -450,22 +463,65 @@
               </div>
             </div>
 
-            <!-- Container do Mapa Leaflet -->
-            <div class="map-wrapper position-relative">
-              <div id="cearaMap"></div>
-              
-              <!-- Card Flutuante de Informação do Município (Hover) -->
-              <div id="mapHoverCard" class="map-hover-card shadow-sm">
-                <span class="hover-label">MUNICÍPIO</span>
-                <h6 class="hover-city-name mb-1" id="hoverCityName">Passe o mouse sobre uma cidade</h6>
-                <div id="hoverCityStats" class="hover-city-stats text-muted small">
-                  Explore o mapa para ver casos e taxas
+            <!-- Atalhos de Zoom por Macrorregião -->
+            <div class="map-region-bar d-flex flex-wrap align-items-center gap-2 mb-3" id="mapRegionBar">
+              <span class="small fw-bold text-muted text-uppercase me-1" style="font-size: 10.5px;">
+                <i class="bi bi-crosshair text-teal me-1"></i>Focar Região:
+              </span>
+              <button type="button" class="btn btn-region-pill active" data-region="all">Todo o Ceará</button>
+              <button type="button" class="btn btn-region-pill" data-region="rmf">Grande Fortaleza</button>
+              <button type="button" class="btn btn-region-pill" data-region="norte">Sobral / Norte</button>
+              <button type="button" class="btn btn-region-pill" data-region="cariri">Cariri / Sul</button>
+              <button type="button" class="btn btn-region-pill" data-region="sertao">Sertão Central</button>
+              <button type="button" class="btn btn-region-pill" data-region="litoral">Litoral Leste</button>
+            </div>
+
+            <!-- Mapa + Painel Lateral de Navegação Rápida -->
+            <div class="row g-3">
+              <div class="col-lg-9">
+                <div class="map-wrapper position-relative">
+                  <div id="cearaMap"></div>
+
+                  <!-- Card Flutuante de Informação do Município (Hover) -->
+                  <div id="mapHoverCard" class="map-hover-card shadow-sm">
+                    <span class="hover-label">MUNICÍPIO</span>
+                    <h6 class="hover-city-name mb-1" id="hoverCityName">Passe o mouse sobre uma cidade</h6>
+                    <div id="hoverCityStats" class="hover-city-stats text-muted small">
+                      Explore o mapa para ver casos e taxas
+                    </div>
+                  </div>
+
+                  <!-- Dica Discreta de Navegação -->
+                  <div class="map-nav-hint d-none d-md-inline-flex align-items-center gap-2">
+                    <span><i class="bi bi-arrows-move text-teal me-1"></i>Arraste para mover</span>
+                    <span class="opacity-50">·</span>
+                    <span><i class="bi bi-mouse text-teal me-1"></i>Scroll para zoom</span>
+                  </div>
+
+                  <!-- Legenda Flutuante da Escala de Cores -->
+                  <div id="mapLegend" class="map-legend-box shadow-sm">
+                    <!-- Injetada dinamicamente via JS de acordo com a métrica ativa -->
+                  </div>
                 </div>
               </div>
 
-              <!-- Legenda Flutuante da Escala de Cores -->
-              <div id="mapLegend" class="map-legend-box shadow-sm">
-                <!-- Injetada dinamicamente via JS de acordo com a métrica ativa -->
+              <!-- Coluna Lateral: Navegação Rápida por Cidade -->
+              <div class="col-lg-3">
+                <aside class="map-quick-panel h-100 d-flex flex-column">
+                  <div class="map-quick-header p-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="fw-bold text-navy small"><i class="bi bi-compass text-teal me-1"></i>Ir para Cidade</span>
+                      <span class="badge bg-teal-soft text-teal-dark" id="mapQuickCount">0</span>
+                    </div>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+                      <input type="text" id="mapQuickSearch" class="form-control" placeholder="Filtrar município...">
+                    </div>
+                  </div>
+                  <div id="mapQuickList" class="map-quick-list flex-grow-1 p-2">
+                    <div class="text-center py-4 text-muted small">Carregando municípios...</div>
+                  </div>
+                </aside>
               </div>
             </div>
           </div>

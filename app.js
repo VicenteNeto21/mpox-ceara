@@ -28,7 +28,15 @@ let totalCearaPopulation = 9302211;
 let cearaGeoJson = null;
 let leafletMap = null;
 let geoJsonLayer = null;
+let gridLayerGroup = null;
+let bubbleLayerGroup = null;
+let labelLayerGroup = null;
 let currentMapMetric = "cases"; // 'cases' ou 'incidence'
+let showMapBubbles = true;
+let showMapLabels = true;
+let mapInitialFitDone = false;
+let selectedMapCityNorm = null;
+let mapLayerByNorm = new Map();
 
 // Estado de Paginação e Ordenação da Tabela
 let tableState = {
@@ -468,6 +476,15 @@ function aggregateCities() {
 // Componente: Mapa Coroplético Interativo (Leaflet)
 // ==========================================================================
 
+const CEARA_REGIONS = {
+  all: null,
+  rmf: [[-4.25, -39.05], [-3.55, -38.15]],
+  norte: [[-4.45, -41.45], [-2.78, -39.65]],
+  cariri: [[-7.86, -40.35], [-6.65, -38.55]],
+  sertao: [[-6.45, -40.75], [-4.65, -38.65]],
+  litoral: [[-5.35, -38.45], [-4.25, -37.25]]
+};
+
 function initMap() {
   if (typeof L === "undefined" || leafletMap || !$("cearaMap")) return;
 
@@ -475,13 +492,31 @@ function initMap() {
     leafletMap = L.map("cearaMap", {
       center: [-5.2, -39.3],
       zoom: 7,
-      minZoom: 6,
-      maxZoom: 12,
+      minZoom: 5.5,
+      maxZoom: 13,
+      zoomSnap: 0.25,
+      zoomDelta: 0.5,
+      dragging: true,
+      scrollWheelZoom: true,
+      touchZoom: true,
+      doubleClickZoom: true,
+      boxZoom: true,
+      keyboard: true,
       zoomControl: true,
-      scrollWheelZoom: false,
       attributionControl: false
     });
 
+    L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(leafletMap);
+
+    gridLayerGroup = L.layerGroup().addTo(leafletMap);
+    bubbleLayerGroup = L.layerGroup().addTo(leafletMap);
+    labelLayerGroup = L.layerGroup().addTo(leafletMap);
+
+    leafletMap.on("zoomend", () => {
+      renderMapOverlays();
+    });
+
+    renderCartographicGrid();
     renderMapLegend(currentMapMetric);
 
     if (cearaGeoJson) {
@@ -495,6 +530,108 @@ function initMap() {
 function getCityDataByCodeOrName(code6, name) {
   const norm = normalize(name);
   return aggregatedCities.find(c => (c.code && c.code === code6) || normalize(c.name) === norm);
+}
+
+function getFeatureCity(feature) {
+  const code7 = String(feature.properties.codarea);
+  const code6 = code7.slice(0, 6);
+  const name = municipalityNames.get(code6) || municipalityNames.get(code7) || "Município";
+  return {
+    name,
+    city: getCityDataByCodeOrName(code6, name)
+  };
+}
+
+function getFeatureBaseStyle(feature) {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const { city } = getFeatureCity(feature);
+  const val = currentMapMetric === "cases"
+    ? (city ? city.total : 0)
+    : (city && city.incidence !== null ? city.incidence : 0);
+
+  const fillColor = getColorForMetric(val, currentMapMetric);
+  const hasCases = val > 0;
+
+  return {
+    fillColor: fillColor,
+    weight: hasCases ? 1.2 : 0.6,
+    opacity: 1,
+    color: hasCases ? (isDark ? "#2dd4bf" : "#0d9488") : (isDark ? "#1e3852" : "#cbd5e1"),
+    fillOpacity: hasCases ? 0.88 : (isDark ? 0.6 : 0.45)
+  };
+}
+
+function getFeatureHighlightStyle(isSelected = false) {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  return {
+    weight: isSelected ? 3 : 2.2,
+    color: isSelected ? (isDark ? "#facc15" : "#e11d48") : (isDark ? "#ffffff" : "#0d2238"),
+    fillOpacity: 0.95
+  };
+}
+
+function updateHoverCard(city, fallbackName) {
+  if ($("hoverCityName")) $("hoverCityName").textContent = city ? city.name : (fallbackName || "Município");
+  if ($("hoverCityStats")) {
+    if (city && city.total > 0) {
+      $("hoverCityStats").innerHTML = `
+        <div class="d-flex justify-content-between mb-1">
+          <span>Notificações:</span> <strong>${numberBR(city.total)}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1">
+          <span>Confirmados:</span> <strong class="text-teal">${numberBR(city.confirmed)}</strong>
+        </div>
+        <div class="d-flex justify-content-between mb-1">
+          <span>Taxa / 100k hab:</span> <strong class="text-navy">${city.incidence !== null ? numberBR(city.incidence) : 'N/D'}</strong>
+        </div>
+        <div class="d-flex justify-content-between text-muted" style="font-size: 10px;">
+          <span>População:</span> <span>${city.population ? numberBR(city.population) + ' hab.' : 'N/D'}</span>
+        </div>
+      `;
+    } else {
+      $("hoverCityStats").innerHTML = `<span class="text-muted">Nenhum caso registrado no período</span>`;
+    }
+  }
+}
+
+function renderCartographicGrid() {
+  if (!leafletMap || !gridLayerGroup) return;
+  gridLayerGroup.clearLayers();
+
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const lineStyle = {
+    color: isDark ? "#1c3148" : "#dce5ee",
+    weight: 0.8,
+    dashArray: "4 4",
+    opacity: 0.8,
+    interactive: false
+  };
+
+  for (let lat = -8; lat <= -2; lat++) {
+    L.polyline([[lat, -43.5], [lat, -35.8]], lineStyle).addTo(gridLayerGroup);
+  }
+  for (let lng = -42; lng <= -37; lng++) {
+    L.polyline([[-9.2, lng], [-1.5, lng]], lineStyle).addTo(gridLayerGroup);
+  }
+
+  const refs = [
+    { lat: -3.05, lng: -38.05, text: "OCEANO ATLÂNTICO", cls: "is-ocean" },
+    { lat: -5.25, lng: -41.95, text: "PIAUÍ (PI)", cls: "" },
+    { lat: -5.25, lng: -37.05, text: "RIO GRANDE DO NORTE (RN)", cls: "" },
+    { lat: -6.75, lng: -37.85, text: "PARAÍBA (PB)", cls: "" },
+    { lat: -8.05, lng: -39.65, text: "PERNAMBUCO (PE)", cls: "" }
+  ];
+
+  refs.forEach(r => {
+    L.marker([r.lat, r.lng], {
+      interactive: false,
+      icon: L.divIcon({
+        className: "map-overlay-icon",
+        html: `<span class="map-ref-label ${r.cls}">${r.text}</span>`,
+        iconSize: [0, 0]
+      })
+    }).addTo(gridLayerGroup);
+  });
 }
 
 function getColorForMetric(val, metric) {
@@ -518,6 +655,152 @@ function getColorForMetric(val, metric) {
   }
 }
 
+function renderMapOverlays() {
+  if (!leafletMap || !bubbleLayerGroup || !labelLayerGroup) return;
+  bubbleLayerGroup.clearLayers();
+  labelLayerGroup.clearLayers();
+
+  const zoom = leafletMap.getZoom();
+
+  mapLayerByNorm.forEach(({ layer, feature }, norm) => {
+    const { name, city } = getFeatureCity(feature);
+    if (!city) return;
+
+    const val = currentMapMetric === "cases"
+      ? city.total
+      : (city.incidence !== null ? city.incidence : 0);
+
+    if (val <= 0) return;
+
+    const center = layer.getBounds().getCenter();
+    const isSelected = selectedMapCityNorm === norm;
+
+    if (showMapBubbles) {
+      const sizeClass = city.total >= 50 ? "size-lg" : city.total >= 10 ? "size-md" : "size-sm";
+      const displayVal = currentMapMetric === "cases"
+        ? numberBR(city.total)
+        : city.incidence.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+      L.marker(center, {
+        interactive: false,
+        zIndexOffset: 200,
+        icon: L.divIcon({
+          className: "map-overlay-icon",
+          html: `<div class="map-case-bubble ${sizeClass} ${isSelected ? 'is-selected' : ''}">${displayVal}</div>`,
+          iconSize: [0, 0]
+        })
+      }).addTo(bubbleLayerGroup);
+    }
+
+    if (showMapLabels && (isSelected || city.total >= 5 || zoom >= 8)) {
+      L.marker(center, {
+        interactive: false,
+        zIndexOffset: 250,
+        icon: L.divIcon({
+          className: "map-overlay-icon",
+          html: `<span class="map-city-label ${showMapBubbles ? 'has-bubble' : ''} ${isSelected ? 'is-selected' : ''}">${escapeHtml(city.name)}</span>`,
+          iconSize: [0, 0]
+        })
+      }).addTo(labelLayerGroup);
+    }
+  });
+}
+
+function renderMapQuickList() {
+  const listEl = $("mapQuickList");
+  const countEl = $("mapQuickCount");
+  if (!listEl) return;
+
+  const query = normalize($("mapQuickSearch")?.value || "");
+  const sorted = [...aggregatedCities]
+    .filter(c => c.total > 0 && (!query || normalize(c.name).includes(query)))
+    .sort((a, b) => b.total - a.total || b.confirmed - a.confirmed);
+
+  if (countEl) countEl.textContent = numberBR(sorted.length);
+
+  if (!sorted.length) {
+    listEl.innerHTML = `<div class="text-center py-4 text-muted small">Nenhuma cidade encontrada.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = sorted.map(c => {
+    const isSel = selectedMapCityNorm === normalize(c.name);
+    const escaped = escapeHtml(c.name);
+    return `
+      <div class="map-quick-item ${isSel ? 'active' : ''}" onclick="focusCityOnMap('${escaped}')">
+        <div class="min-width-0 flex-grow-1">
+          <div class="map-quick-name">${escaped}</div>
+          <small class="text-muted d-block" style="font-size: 10.5px;">
+            ${numberBR(c.total)} notif. · <span class="text-teal fw-semibold">${numberBR(c.confirmed)} conf.</span>
+          </small>
+        </div>
+        <button type="button" class="btn-quick-modal" onclick="event.stopPropagation(); openCityModal('${escaped}')" title="Abrir ficha de ${escaped}">
+          <i class="bi bi-box-arrow-up-right"></i>
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+window.focusCityOnMap = function(cityName) {
+  if (!leafletMap || !geoJsonLayer) return;
+  const norm = normalize(cityName);
+  const entry = mapLayerByNorm.get(norm);
+  if (!entry) return;
+
+  selectedMapCityNorm = norm;
+
+  mapLayerByNorm.forEach(({ layer, feature }, key) => {
+    if (key === norm) {
+      layer.setStyle(getFeatureHighlightStyle(true));
+      layer.bringToFront();
+    } else {
+      layer.setStyle(getFeatureBaseStyle(feature));
+    }
+  });
+
+  const { name, city } = getFeatureCity(entry.feature);
+  updateHoverCard(city, name);
+
+  const bounds = entry.layer.getBounds();
+  if (bounds && bounds.isValid()) {
+    leafletMap.flyToBounds(bounds, { maxZoom: 9.5, padding: [36, 36], duration: 0.6 });
+  }
+
+  renderMapOverlays();
+  renderMapQuickList();
+};
+
+function flyToRegion(regionKey) {
+  if (!leafletMap) return;
+
+  document.querySelectorAll("#mapRegionBar .btn-region-pill").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.region === regionKey);
+  });
+
+  if (regionKey === "all") {
+    selectedMapCityNorm = null;
+    mapLayerByNorm.forEach(({ layer, feature }) => layer.setStyle(getFeatureBaseStyle(feature)));
+    if ($("hoverCityName")) $("hoverCityName").textContent = "Passe o mouse sobre uma cidade";
+    if ($("hoverCityStats")) $("hoverCityStats").innerHTML = "Explore o mapa para ver casos e taxas";
+    renderMapOverlays();
+    renderMapQuickList();
+
+    if (geoJsonLayer && typeof geoJsonLayer.getBounds === "function") {
+      try {
+        const b = geoJsonLayer.getBounds();
+        if (b && b.isValid()) leafletMap.flyToBounds(b, { padding: [16, 16], duration: 0.5 });
+      } catch (e) {}
+    }
+    return;
+  }
+
+  const bounds = CEARA_REGIONS[regionKey];
+  if (bounds) {
+    leafletMap.flyToBounds(bounds, { padding: [16, 16], duration: 0.6 });
+  }
+}
+
 function updateMap() {
   if (typeof L === "undefined" || !leafletMap || !cearaGeoJson) return;
 
@@ -525,95 +808,62 @@ function updateMap() {
     if (geoJsonLayer) {
       leafletMap.removeLayer(geoJsonLayer);
     }
-
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    mapLayerByNorm.clear();
 
     geoJsonLayer = L.geoJSON(cearaGeoJson, {
-      style: function(feature) {
-        const code7 = String(feature.properties.codarea);
-        const code6 = code7.slice(0, 6);
-        const name = municipalityNames.get(code6) || municipalityNames.get(code7) || "";
-        const city = getCityDataByCodeOrName(code6, name);
-
-        const val = currentMapMetric === "cases"
-          ? (city ? city.total : 0)
-          : (city && city.incidence !== null ? city.incidence : 0);
-
-        const fillColor = getColorForMetric(val, currentMapMetric);
-        const hasCases = val > 0;
-
-        return {
-          fillColor: fillColor,
-          weight: hasCases ? 1.2 : 0.6,
-          opacity: 1,
-          color: hasCases ? (isDark ? "#2dd4bf" : "#0d9488") : (isDark ? "#1e3852" : "#cbd5e1"),
-          fillOpacity: hasCases ? 0.88 : (isDark ? 0.6 : 0.4)
-        };
-      },
+      style: getFeatureBaseStyle,
       onEachFeature: function(feature, layer) {
-        const code7 = String(feature.properties.codarea);
-        const code6 = code7.slice(0, 6);
-        const name = municipalityNames.get(code6) || municipalityNames.get(code7) || "Município";
-        const city = getCityDataByCodeOrName(code6, name);
+        const { name, city } = getFeatureCity(feature);
+        const norm = normalize(city ? city.name : name);
+        mapLayerByNorm.set(norm, { layer, feature });
 
         layer.on({
           mouseover: function(e) {
             const l = e.target;
-            const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-            l.setStyle({
-              weight: 2.5,
-              color: isDark ? "#ffffff" : "#0d2238",
-              fillOpacity: 0.95
-            });
+            const isSel = selectedMapCityNorm === norm;
+            l.setStyle(getFeatureHighlightStyle(isSel));
             l.bringToFront();
-
-            if ($("hoverCityName")) $("hoverCityName").textContent = city ? city.name : name;
-            if ($("hoverCityStats")) {
-              if (city && city.total > 0) {
-                $("hoverCityStats").innerHTML = `
-                  <div class="d-flex justify-content-between mb-1">
-                    <span>Notificações:</span> <strong>${numberBR(city.total)}</strong>
-                  </div>
-                  <div class="d-flex justify-content-between mb-1">
-                    <span>Confirmados:</span> <strong class="text-teal">${numberBR(city.confirmed)}</strong>
-                  </div>
-                  <div class="d-flex justify-content-between mb-1">
-                    <span>Taxa / 100k hab:</span> <strong class="text-navy">${city.incidence !== null ? numberBR(city.incidence) : 'N/D'}</strong>
-                  </div>
-                  <div class="d-flex justify-content-between text-muted" style="font-size: 10px;">
-                    <span>População:</span> <span>${city.population ? numberBR(city.population) + ' hab.' : 'N/D'}</span>
-                  </div>
-                `;
-              } else {
-                $("hoverCityStats").innerHTML = `<span class="text-muted">Nenhum caso registrado no período</span>`;
+            updateHoverCard(city, name);
+          },
+          mouseout: function(e) {
+            const l = e.target;
+            if (selectedMapCityNorm === norm) {
+              l.setStyle(getFeatureHighlightStyle(true));
+              l.bringToFront();
+            } else {
+              l.setStyle(getFeatureBaseStyle(feature));
+            }
+            if (!selectedMapCityNorm) {
+              if ($("hoverCityName")) $("hoverCityName").textContent = "Passe o mouse sobre uma cidade";
+              if ($("hoverCityStats")) $("hoverCityStats").innerHTML = "Explore o mapa para ver casos e taxas";
+            } else {
+              const selEntry = mapLayerByNorm.get(selectedMapCityNorm);
+              if (selEntry) {
+                const selData = getFeatureCity(selEntry.feature);
+                updateHoverCard(selData.city, selData.name);
               }
             }
           },
-          mouseout: function(e) {
-            if (geoJsonLayer) geoJsonLayer.resetStyle(e.target);
-            if ($("hoverCityName")) $("hoverCityName").textContent = "Passe o mouse sobre uma cidade";
-            if ($("hoverCityStats")) $("hoverCityStats").innerHTML = "Explore o mapa para ver casos e taxas";
-          },
-          click: function(e) {
-            if (city) {
-              openCityModal(city.name);
-            } else {
-              openCityModal(name);
-            }
+          click: function() {
+            openCityModal(city ? city.name : name);
           }
         });
       }
     }).addTo(leafletMap);
 
-    if (geoJsonLayer && typeof geoJsonLayer.getBounds === "function") {
+    if (!mapInitialFitDone && geoJsonLayer && typeof geoJsonLayer.getBounds === "function") {
       try {
         const bounds = geoJsonLayer.getBounds();
         if (bounds && bounds.isValid && bounds.isValid()) {
-          leafletMap.fitBounds(bounds, { padding: [12, 12] });
+          leafletMap.fitBounds(bounds, { padding: [16, 16] });
+          mapInitialFitDone = true;
         }
       } catch (e) {}
     }
 
+    renderCartographicGrid();
+    renderMapOverlays();
+    renderMapQuickList();
     renderMapLegend(currentMapMetric);
   } catch (err) {
     console.warn("Aviso ao renderizar polígonos no mapa:", err);
@@ -1720,14 +1970,33 @@ function setupEventListeners() {
     });
   });
 
+  if ($("toggleMapBubbles")) {
+    $("toggleMapBubbles").addEventListener("change", (e) => {
+      showMapBubbles = e.target.checked;
+      renderMapOverlays();
+    });
+  }
+
+  if ($("toggleMapLabels")) {
+    $("toggleMapLabels").addEventListener("change", (e) => {
+      showMapLabels = e.target.checked;
+      renderMapOverlays();
+    });
+  }
+
+  document.querySelectorAll("#mapRegionBar .btn-region-pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      flyToRegion(btn.dataset.region);
+    });
+  });
+
+  if ($("mapQuickSearch")) {
+    $("mapQuickSearch").addEventListener("input", renderMapQuickList);
+  }
+
   if ($("resetMapBtn")) {
     $("resetMapBtn").addEventListener("click", () => {
-      if (leafletMap && geoJsonLayer && typeof geoJsonLayer.getBounds === "function") {
-        try {
-          const b = geoJsonLayer.getBounds();
-          if (b && b.isValid && b.isValid()) leafletMap.fitBounds(b, { padding: [12, 12] });
-        } catch (e) {}
-      }
+      flyToRegion("all");
     });
   }
 
@@ -1736,10 +2005,13 @@ function setupEventListeners() {
     mapTabBtn.addEventListener("shown.bs.tab", () => {
       if (leafletMap) {
         leafletMap.invalidateSize();
-        if (geoJsonLayer && typeof geoJsonLayer.getBounds === "function") {
+        if (!mapInitialFitDone && geoJsonLayer && typeof geoJsonLayer.getBounds === "function") {
           try {
             const b = geoJsonLayer.getBounds();
-            if (b && b.isValid && b.isValid()) leafletMap.fitBounds(b, { padding: [12, 12] });
+            if (b && b.isValid && b.isValid()) {
+              leafletMap.fitBounds(b, { padding: [16, 16] });
+              mapInitialFitDone = true;
+            }
           } catch (e) {}
         }
       }
