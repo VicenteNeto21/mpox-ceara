@@ -176,7 +176,7 @@ function serveStatic(request, response) {
     }
     response.writeHead(200, {
       "Content-Type": contentTypes[path.extname(filePath).toLowerCase()] || "application/octet-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
     });
     response.end(content);
   });

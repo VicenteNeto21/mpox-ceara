@@ -946,7 +946,91 @@ h1, h2, h3, h4, h5, h6, .brand-title {
 /* Estilo do Polígono no Mapa Leaflet */
 .leaflet-interactive {
   transition: fill 0.2s ease, fill-opacity 0.2s ease, stroke-width 0.2s ease;
+}
+
+/* Cursores SVG em Base64 (escuros com contorno branco) — elimina a mão branca invisível */
+:root {
+  --cursor-map-move: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgdmlld0JveD0iMCAwIDMyIDMyIj48cGF0aCBkPSJNMTYgMmw1IDZoLTMuNXY2LjVIMjRWMDFsNiA1LTYgNXYtMy41aC02LjVWMjRIMjFsLTUgNi01LTZoMy41di02LjVIOFYyMWwtNi01IDYtNXYzLjVoNi41VjhIMTF6IiBmaWxsPSIjMGQyMjM4IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==") 14 14, move;
+  --cursor-map-dragging: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIyOCIgdmlld0JveD0iMCAwIDMyIDMyIj48cGF0aCBkPSJNMTYgMmw1IDZoLTMuNXY2LjVIMjRWMDFsNiA1LTYgNXYtMy41aC02LjVWMjRIMjFsLTUgNi01LTZoMy41di02LjVIOFYyMWwtNi01IDYtNXYzLjVoNi41VjhIMTF6IiBmaWxsPSIjMGQ5NDg4IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==") 14 14, move;
+}
+
+#cearaMap,
+#cearaMap.leaflet-container,
+#cearaMap.leaflet-grab,
+#cearaMap .leaflet-grab,
+#cearaMap .leaflet-pane,
+#cearaMap svg,
+#cearaMap .leaflet-interactive {
+  cursor: var(--cursor-map-move) !important;
+  user-select: none;
+}
+
+#cearaMap.is-map-dragging,
+#cearaMap.is-map-dragging .leaflet-pane,
+#cearaMap.is-map-dragging svg,
+#cearaMap.is-map-dragging .leaflet-interactive {
+  cursor: var(--cursor-map-dragging) !important;
+}
+
+#cearaMap .leaflet-control,
+#cearaMap .leaflet-control a,
+#cearaMap .map-pan-control button {
+  cursor: pointer !important;
+}
+
+/* Controle de deslocamento (setas) do mapa */
+.map-pan-control {
+  display: grid;
+  grid-template-columns: repeat(3, 28px);
+  grid-template-rows: repeat(3, 28px);
+  gap: 2px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.map-pan-control button {
+  border: 1px solid var(--border-color);
+  background: #ffffff;
+  color: var(--slate-dark);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  padding: 0;
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.map-pan-control button:hover {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #ffffff;
+}
+
+.map-pan-control .pan-up { grid-column: 2; grid-row: 1; }
+.map-pan-control .pan-left { grid-column: 1; grid-row: 2; }
+.map-pan-control .pan-center { grid-column: 2; grid-row: 2; }
+.map-pan-control .pan-right { grid-column: 3; grid-row: 2; }
+.map-pan-control .pan-down { grid-column: 2; grid-row: 3; }
+
+[data-theme="dark"] .map-pan-control {
+  background: rgba(17, 29, 44, 0.95);
+  border-color: #243c58;
+}
+
+[data-theme="dark"] .map-pan-control button {
+  background: #162536;
+  border-color: #243c58;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .map-pan-control button:hover {
+  background: #0d9488;
+  border-color: #0d9488;
+  color: #ffffff;
 }
 
 /* Responsive adjustments */
@@ -1985,15 +2069,6 @@ h1, h2, h3, h4, h5, h6, .brand-title {
 /* ==========================================================================
    Upgrade do Mapa: Navegação, Regiões, Bolhas, Rótulos e Painel Rápido
    ========================================================================== */
-#cearaMap {
-  cursor: grab;
-}
-
-.leaflet-dragging #cearaMap,
-#cearaMap:active {
-  cursor: grabbing;
-}
-
 .btn-region-pill {
   font-size: 11.5px;
   font-weight: 700;

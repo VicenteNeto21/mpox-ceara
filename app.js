@@ -35,6 +35,7 @@ let currentMapMetric = "cases"; // 'cases' ou 'incidence'
 let showMapBubbles = true;
 let showMapLabels = true;
 let mapInitialFitDone = false;
+let mapIsDragging = false;
 let selectedMapCityNorm = null;
 let mapLayerByNorm = new Map();
 
@@ -485,6 +486,114 @@ const CEARA_REGIONS = {
   litoral: [[-5.35, -38.45], [-4.25, -37.25]]
 };
 
+function initCustomMapDrag(map) {
+  const container = map.getContainer();
+  if (!container || container._customDragBound) return;
+  container._customDragBound = true;
+
+  // Remove classes do Leaflet que forçam a mão branca invisível do sistema
+  container.classList.remove("leaflet-grab", "leaflet-touch-drag");
+
+  let isDown = false;
+  let hasMoved = false;
+  let startX = 0;
+  let startY = 0;
+  let lastX = 0;
+  let lastY = 0;
+
+  const isControlTarget = (target) => {
+    if (!target || typeof target.closest !== "function") return false;
+    return Boolean(
+      target.closest(".leaflet-control") ||
+      target.closest(".map-pan-control") ||
+      target.closest("button") ||
+      target.closest("a") ||
+      target.closest("input")
+    );
+  };
+
+  const startDrag = (clientX, clientY, target) => {
+    if (isControlTarget(target)) return false;
+    isDown = true;
+    hasMoved = false;
+    startX = clientX;
+    startY = clientY;
+    lastX = clientX;
+    lastY = clientY;
+    map.stop();
+    return true;
+  };
+
+  const moveDrag = (clientX, clientY, rawEvent) => {
+    if (!isDown) return;
+    const dx = clientX - lastX;
+    const dy = clientY - lastY;
+    const dist = Math.hypot(clientX - startX, clientY - startY);
+
+    if (!hasMoved && dist > 3) {
+      hasMoved = true;
+      mapIsDragging = true;
+      container.classList.add("is-map-dragging");
+    }
+
+    if (hasMoved && (dx !== 0 || dy !== 0)) {
+      if (rawEvent && rawEvent.cancelable) rawEvent.preventDefault();
+      map.panBy([-dx, -dy], { animate: false, noMoveStart: true });
+      lastX = clientX;
+      lastY = clientY;
+    }
+  };
+
+  const endDrag = () => {
+    if (!isDown) return;
+    isDown = false;
+    container.classList.remove("is-map-dragging");
+    if (hasMoved) {
+      hasMoved = false;
+      setTimeout(() => {
+        mapIsDragging = false;
+      }, 140);
+    } else {
+      mapIsDragging = false;
+    }
+  };
+
+  // Eventos de Mouse (Desktop)
+  container.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    startDrag(e.clientX, e.clientY, e.target);
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    moveDrag(e.clientX, e.clientY, e);
+  });
+
+  window.addEventListener("mouseup", () => {
+    endDrag();
+  });
+
+  // Eventos de Toque (Touchscreen / Mobile)
+  container.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    startDrag(t.clientX, t.clientY, e.target);
+  }, { passive: true });
+
+  window.addEventListener("touchmove", (e) => {
+    if (!isDown || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    moveDrag(t.clientX, t.clientY, e);
+  }, { passive: false });
+
+  window.addEventListener("touchend", () => {
+    endDrag();
+  });
+
+  window.addEventListener("touchcancel", () => {
+    endDrag();
+  });
+}
+
 function initMap() {
   if (typeof L === "undefined" || leafletMap || !$("cearaMap")) return;
 
@@ -496,7 +605,7 @@ function initMap() {
       maxZoom: 13,
       zoomSnap: 0.25,
       zoomDelta: 0.5,
-      dragging: true,
+      dragging: false,
       scrollWheelZoom: true,
       touchZoom: true,
       doubleClickZoom: true,
@@ -506,7 +615,35 @@ function initMap() {
       attributionControl: false
     });
 
+    // Motor próprio de arraste com mouse e toque (do zero, sem L.Draggable)
+    initCustomMapDrag(leafletMap);
+
     L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(leafletMap);
+
+    // Controle de setas para mover o mapa (alternativa ao arraste)
+    const PanControl = L.Control.extend({
+      options: { position: "topleft" },
+      onAdd: function(map) {
+        const div = L.DomUtil.create("div", "map-pan-control leaflet-bar");
+        div.innerHTML = `
+          <button type="button" class="pan-up" title="Mover para cima" aria-label="Mover para cima"><i class="bi bi-chevron-up"></i></button>
+          <button type="button" class="pan-left" title="Mover para a esquerda" aria-label="Mover para a esquerda"><i class="bi bi-chevron-left"></i></button>
+          <button type="button" class="pan-center" title="Centralizar no Ceará" aria-label="Centralizar no Ceará"><i class="bi bi-bullseye"></i></button>
+          <button type="button" class="pan-right" title="Mover para a direita" aria-label="Mover para a direita"><i class="bi bi-chevron-right"></i></button>
+          <button type="button" class="pan-down" title="Mover para baixo" aria-label="Mover para baixo"><i class="bi bi-chevron-down"></i></button>
+        `;
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        const step = () => Math.round(map.getSize().x * 0.25);
+        div.querySelector(".pan-up").addEventListener("click", () => map.panBy([0, -step()], { animate: true }));
+        div.querySelector(".pan-down").addEventListener("click", () => map.panBy([0, step()], { animate: true }));
+        div.querySelector(".pan-left").addEventListener("click", () => map.panBy([-step(), 0], { animate: true }));
+        div.querySelector(".pan-right").addEventListener("click", () => map.panBy([step(), 0], { animate: true }));
+        div.querySelector(".pan-center").addEventListener("click", () => flyToRegion("all"));
+        return div;
+      }
+    });
+    new PanControl().addTo(leafletMap);
 
     gridLayerGroup = L.layerGroup().addTo(leafletMap);
     bubbleLayerGroup = L.layerGroup().addTo(leafletMap);
@@ -804,6 +941,12 @@ function flyToRegion(regionKey) {
 function updateMap() {
   if (typeof L === "undefined" || !leafletMap || !cearaGeoJson) return;
 
+  // Não recria as camadas no meio de um arraste (refresh automático a cada 60s)
+  if (mapIsDragging) {
+    setTimeout(updateMap, 400);
+    return;
+  }
+
   try {
     if (geoJsonLayer) {
       leafletMap.removeLayer(geoJsonLayer);
@@ -819,17 +962,17 @@ function updateMap() {
 
         layer.on({
           mouseover: function(e) {
+            if (mapIsDragging) return;
             const l = e.target;
             const isSel = selectedMapCityNorm === norm;
             l.setStyle(getFeatureHighlightStyle(isSel));
-            l.bringToFront();
             updateHoverCard(city, name);
           },
           mouseout: function(e) {
+            if (mapIsDragging) return;
             const l = e.target;
             if (selectedMapCityNorm === norm) {
               l.setStyle(getFeatureHighlightStyle(true));
-              l.bringToFront();
             } else {
               l.setStyle(getFeatureBaseStyle(feature));
             }
@@ -845,6 +988,7 @@ function updateMap() {
             }
           },
           click: function() {
+            if (mapIsDragging) return;
             openCityModal(city ? city.name : name);
           }
         });
